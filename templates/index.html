@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}StudyLens - Deactivation Studies{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+                <h2 class="hero-title">What do social media reduction experiments tell us – and when and why do their findings differ?</h2>
+                </p>
+                <p class="hero-description hero-description-secondary">
+                   A structured database of social media reduction and deactivation experiments, built for exploring why findings vary across designs and building theory from those differences.
+                </p>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Keywords, authors, country, income group…" class="search-input">
+                <button class="search-btn" onclick="performSearch()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    Search
+                </button>
+            </div>
+            
+            <div class="search-suggestions">
+                <span class="suggestion-label">Popular searches:</span>
+                <a href="{{ url_for('search', q='trust') }}" class="suggestion-tag">trust</a>
+                <a href="{{ url_for('search', q='tolerance') }}" class="suggestion-tag">tolerance</a>
+                <a href="{{ url_for('search', q='social media') }}" class="suggestion-tag">social media</a>
+                <a href="{{ url_for('search', q='political polarization') }}" class="suggestion-tag">political polarization</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    function performSearch() {
+        const searchInput = document.getElementById('searchInput');
+        const query = searchInput.value.trim();
+        updateUserStats('searches');
+        if (query) {
+            window.location.href = "{{ url_for('search') }}?q=" + encodeURIComponent(query);
+        } else {
+            window.location.href = "{{ url_for('search') }}";
+        }
+    }
+
+    function searchTag(tag) {
+        // Update search count
+        updateUserStats('searches');
+        window.location.href = "{{ url_for('search') }}?q=" + encodeURIComponent(tag);
+    }
+    
+    // Generate a simple session ID if not exists
+    if (!sessionStorage.getItem('sessionId')) {
+        sessionStorage.setItem('sessionId', 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+    }
+
+    function updateUserStats(action) {
+        let stats = JSON.parse(localStorage.getItem('userStats') || '{}');
+        if (!stats.searches) stats.searches = 0;
+        if (!stats.comparisons) stats.comparisons = 0;
+        if (!stats.articlesViewed) stats.articlesViewed = 0;
+        
+        if (action === 'searches') {
+            stats.searches += 1;
+        } else if (action === 'comparisons') {
+            stats.comparisons += 1;
+        } else if (action === 'articlesViewed') {
+            stats.articlesViewed += 1;
+        }
+        
+        localStorage.setItem('userStats', JSON.stringify(stats));
+    }
+</script>
+{% endblock %}

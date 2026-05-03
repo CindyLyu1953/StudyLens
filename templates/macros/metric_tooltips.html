@@ -1,0 +1,17 @@
+{# Data source / scale hints for contextual indicators (Article + Compare). #}
+{% set CONTEXT_METRIC_SOURCE_HELP = {
+    'democracy': 'Source: V-Dem, Varieties of Democracy; Scale: 0-1',
+    'press_freedom': 'Source: Reporters Without Borders; Scale: 0-100',
+    'internet_freedom': 'Source: Freedom House, Freedom on the Net; Scale: 0-100',
+    'internet_penetration': 'Source: World Bank; Scale: 0-100, % of population',
+    'governance': 'Source: World Bank; Scale: 0-100',
+} %}
+
+{% macro metric_source_tooltip(feature_key) %}
+{% if feature_key in CONTEXT_METRIC_SOURCE_HELP %}
+<span class="info-tooltip metric-source-tooltip" tabindex="0" aria-label="Source and scale">
+    <span class="info-tooltip-circle" aria-hidden="true">i</span>
+    <span class="tooltip-text">{{ CONTEXT_METRIC_SOURCE_HELP[feature_key] }}</span>
+</span>
+{% endif %}
+{% endmacro %}

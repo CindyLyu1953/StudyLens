@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}StudyLens{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1>StudyLens</h1>
+                <span class="tagline">Deactivation Studies</span>
+            </div>
+            <nav class="nav">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a>
+                <a href="{{ url_for('search') }}" class="nav-link {% if request.endpoint == 'search' %}active{% endif %}">Search</a>
+                <a href="{{ url_for('compare') }}" class="nav-link {% if request.endpoint == 'compare' %}active{% endif %}">Compare</a>
+                <a href="{{ url_for('profile') }}" class="nav-link {% if request.endpoint == 'profile' %}active{% endif %}">Profile</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Us</h4>
+                    <p>StudyLens was built to enable users to compare and analyze research studies, focusing on methodology, measures, and context. By highlighting design differences, we aim to help users draw more informed conclusions from existing research.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Our Database</h4>
+                    <a href="{{ url_for('database') }}">View Database</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 StudyLens. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

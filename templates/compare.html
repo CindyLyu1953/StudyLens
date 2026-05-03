@@ -1,0 +1,1470 @@
+{% extends "base.html" %}
+{% import 'macros/metric_tooltips.html' as metric_tt %}
+
+{% block title %}Research Comparison - StudyLens{% endblock %}
+
+{% block body_class %}compare-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/compare.css') }}">
+{% endblock %}
+
+{% macro render_feature_cell(paper, summary_value, verbatim_value, feature_key, feature_label, study_index) %}
+    {% set summary_text = summary_value or '' %}
+    {% set verbatim_text = verbatim_value or '' %}
+    {% set has_verbatim = verbatim_text and verbatim_text != 'NOT SPECIFIED' %}
+    {% set summary_word_count = summary_text|word_count %}
+    {% set needs_truncation = summary_word_count > 30 %}
+    {% set display_text = needs_truncation and summary_text|truncate_words(30) or summary_text %}
+    {% set condensed_id = feature_key ~ '-condensed-' ~ study_index %}
+    {% set verbatim_id = feature_key ~ '-verbatim-' ~ study_index %}
+    <div class="feature-content">
+        <div class="feature-text-region">
+            <div class="feature-summary">
+                <p>
+                    <span class="summary-preview">
+                        {% set v = display_text|string %}
+                        {% set is_platform_metric_row = feature_key in [
+                            'internet_users_million',
+                            'social_media_users_million',
+                            'youtube_users_million',
+                            'facebook_users_million',
+                            'instagram_users_million',
+                            'x_users_million',
+                            'tiktok_users_million',
+                            'linkedin_users_million',
+                            'messenger_users_million',
+                            'snapchat_users_million',
+                            'pinterest_users_million'
+                        ] and '%' in v %}
+                        {% if is_platform_metric_row %}
+                            {% set parts = v.rsplit(' ', 1) %}
+                            {% if parts|length == 2 %}
+                                <span class="summary-text metric-breakdown">
+                                    <span class="metric-line"><strong>{{ feature_label }}:</strong> {{ parts[0] }}</span><br>
+                                    <span class="metric-line"><strong>% Of Platform Users Based On Population:</strong> {{ parts[1] }}</span>
+                                </span>
+                            {% else %}
+                                <span class="summary-text">{{ v|highlight_keywords(feature_key) }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="summary-text">{{ v|highlight_keywords(feature_key) }}</span>
+                        {% endif %}
+                        {% if needs_truncation and not is_platform_metric_row %}
+                        <template class="inline-expand-highlight-full">{{ summary_text|highlight_keywords(feature_key) }}</template>
+                        <template class="inline-expand-highlight-trunc">{{ display_text|highlight_keywords(feature_key) }}</template>
+                        {% endif %}
+                        {% if needs_truncation %}
+                        <button type="button"
+                            class="inline-expand-toggle"
+                            data-full-text="{{ summary_text|e }}"
+                            data-truncated-text="{{ display_text|e }}"
+                            aria-expanded="false"
+                            aria-label="View full text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </button>
+                        {% else %}
+                        <span class="inline-expand-placeholder" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="transparent" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </span>
+                        {% endif %}
+                    </span>
+                </p>
+            </div>
+            {% if has_verbatim %}
+            <div class="feature-full-text hidden" id="{{ verbatim_id }}">
+                <p>{{ verbatim_text|highlight_keywords(feature_key) }}</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="feature-actions">
+            {% if has_verbatim %}
+            <button class="btn btn-outline btn-sm full-text-trigger"
+                data-full-text-id="{{ verbatim_id }}"
+                data-feature-label="{{ feature_label }} Verbatim"
+                data-study-title="{{ paper.title|e }}"
+                data-study-index="{{ study_index }}">
+                <span class="btn-text">View Verbatim Text</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro info_tooltip(text) %}
+    <span class="info-tooltip" tabindex="0">
+        ⓘ
+        <span class="tooltip-text">{{ text }}</span>
+    </span>
+{% endmacro %}
+
+{% macro render_feature_by_key(paper, feature_key, feature_label, study_index) %}
+    {% set summary = '' %}
+    {% set verbatim = '' %}
+
+    {% if feature_key == 'authors' %}
+        {% set summary = paper.authors|join(', ') %}
+        {% set verbatim = paper.authors_verbatim %}
+    {% elif feature_key == 'title' %}
+        {% set summary = paper.title %}
+        {% set verbatim = paper.title_verbatim %}
+    {% elif feature_key == 'journal' %}
+        {% set summary = paper.journal %}
+        {% set verbatim = paper.journal_verbatim %}
+    {% elif feature_key == 'year' %}
+        {% set summary = paper.year %}
+    {% elif feature_key == 'citation' %}
+        {% set summary = paper.citation or '' %}
+    {% elif feature_key == 'abstract' %}
+        {% set summary = paper.abstract %}
+        {% set verbatim = paper.abstract_verbatim %}
+    {% elif feature_key == 'sample_size' %}
+        {% if paper.sample_size and paper.sample_size > 0 %}
+            {% set summary = "{:,}".format(paper.sample_size) %}
+        {% elif paper.extracted_features.sample_size %}
+            {% set summary = paper.extracted_features.sample_size %}
+        {% endif %}
+        {% set verbatim = paper.extracted_features.sample_size_verbatim %}
+    {% elif feature_key == 'country_region' %}
+        {% set summary = paper.extracted_features.country_region %}
+        {% set verbatim = paper.extracted_features.country_region_verbatim %}
+    {% elif feature_key == 'recruitment_source' %}
+        {% set summary = paper.extracted_features.recruitment_source %}
+        {% set verbatim = paper.extracted_features.recruitment_source_verbatim %}
+    {% elif feature_key == 'demographics' %}
+        {% set summary = paper.extracted_features.demographics %}
+        {% set verbatim = paper.extracted_features.demographics_verbatim %}
+    {% elif feature_key == 'incentive' %}
+        {% set summary = paper.extracted_features.incentive %}
+        {% set verbatim = paper.extracted_features.incentive_verbatim %}
+    {% elif feature_key == 'independent_variables' %}
+        {% set summary = paper.extracted_features.independent_variables %}
+        {% set verbatim = paper.extracted_features.independent_variables_verbatim %}
+    {% elif feature_key == 'dependent_variables' %}
+        {% set summary = paper.extracted_features.dependent_variables %}
+        {% set verbatim = paper.extracted_features.dependent_variables_verbatim %}
+    {% elif feature_key == 'survey_questions' %}
+        {% set summary = paper.extracted_features.survey_questions %}
+        {% set verbatim = paper.extracted_features.survey_questions_verbatim %}
+    {% elif feature_key == 'analysis_equations' %}
+        {% set summary = paper.extracted_features.analysis_equations %}
+        {% set verbatim = paper.extracted_features.analysis_equations_verbatim %}
+    {% elif feature_key == 'main_effects' %}
+        {% set summary = paper.extracted_features.main_effects %}
+        {% set verbatim = paper.extracted_features.main_effects_verbatim %}
+    {% elif feature_key == 'moderators' %}
+        {% set summary = paper.extracted_features.moderators %}
+        {% set verbatim = paper.extracted_features.moderators_verbatim %}
+    {% elif feature_key == 'moderation_results' %}
+        {% set summary = paper.extracted_features.moderation_results %}
+        {% set verbatim = paper.extracted_features.moderation_results_verbatim %}
+    {% elif feature_key == 'ai_context_summary' %}
+        {% set summary = paper.extracted_features.ai_context_summary %}
+        {% set verbatim = '' %}
+    {% elif feature_key == 'temporal_context' %}
+        {% set summary = paper.extracted_features.temporal_context %}
+        {% set verbatim = paper.extracted_features.temporal_context_verbatim %}
+    {% elif feature_key == 'gdp_per_capita_usd' %}
+        {% set summary = paper.extracted_features.gdp_per_capita_usd %}
+    {% elif feature_key == 'gini_coefficient' %}
+        {% set summary = paper.extracted_features.gini_coefficient %}
+    {% elif feature_key == 'income_group' %}
+        {% set summary = paper.extracted_features.income_group %}
+    {% elif feature_key == 'study_language' %}
+        {% set summary = paper.extracted_features.study_language %}
+    {% elif feature_key == 'platform_language_optimization' %}
+        {% set summary = paper.extracted_features.platform_language_optimization %}
+    {% elif feature_key == 'traditional_media_strength' %}
+        {% set summary = paper.extracted_features.traditional_media_strength %}
+    {% elif feature_key == 'electoral_proximity' %}
+        {% set summary = paper.extracted_features.electoral_proximity %}
+    {% elif feature_key == 'democracy' %}
+        {% set summary = paper.extracted_features.democracy %}
+    {% elif feature_key == 'press_freedom' %}
+        {% set summary = paper.extracted_features.press_freedom %}
+    {% elif feature_key == 'internet_freedom' %}
+        {% set summary = paper.extracted_features.internet_freedom %}
+    {% elif feature_key == 'internet_penetration' %}
+        {% set summary = paper.extracted_features.internet_penetration %}
+    {% elif feature_key == 'governance' %}
+        {% set summary = paper.extracted_features.governance %}
+    {% elif feature_key == 'deliberative_democracy' %}
+        {% set summary = paper.extracted_features.deliberative_democracy %}
+    {% elif feature_key == 'population_million' %}
+        {% set summary = paper.extracted_features.population_million %}
+    {% elif feature_key == 'internet_users_million' %}
+        {% set summary = paper.extracted_features.internet_users_million %}
+    {% elif feature_key == 'social_media_users_million' %}
+        {% set summary = paper.extracted_features.social_media_users_million %}
+    {% elif feature_key == 'youtube_users_million' %}
+        {% set summary = paper.extracted_features.youtube_users_million %}
+    {% elif feature_key == 'facebook_users_million' %}
+        {% set summary = paper.extracted_features.facebook_users_million %}
+    {% elif feature_key == 'instagram_users_million' %}
+        {% set summary = paper.extracted_features.instagram_users_million %}
+    {% elif feature_key == 'x_users_million' %}
+        {% set summary = paper.extracted_features.x_users_million %}
+    {% elif feature_key == 'tiktok_users_million' %}
+        {% set summary = paper.extracted_features.tiktok_users_million %}
+    {% elif feature_key == 'linkedin_users_million' %}
+        {% set summary = paper.extracted_features.linkedin_users_million %}
+    {% elif feature_key == 'messenger_users_million' %}
+        {% set summary = paper.extracted_features.messenger_users_million %}
+    {% elif feature_key == 'ai_context_summary' %}
+        {% set summary = paper.extracted_features.ai_context_summary %}
+    {% elif feature_key == 'snapchat_users_million' %}
+        {% set summary = paper.extracted_features.snapchat_users_million %}
+    {% elif feature_key == 'pinterest_users_million' %}
+        {% set summary = paper.extracted_features.pinterest_users_million %}
+    {% endif %}
+
+    {% if summary %}
+        {{ render_feature_cell(paper, summary, verbatim, feature_key, feature_label, study_index) }}
+    {% else %}
+        <div class="feature-content">
+            <div class="feature-summary"><p>—</p></div>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="container">
+    <!-- Comparison Header -->
+    <section class="compare-header">
+        <h1 class="page-title">Research Comparison</h1>
+        <p class="page-description">Side-by-side comparison of key features from different studies, discovering operationalization differences and measurement method variations</p>
+        <p class="compare-mobile-hint" role="note" aria-label="Mobile limitation notice">Use the desktop version for full capabilities.</p>
+
+        <div class="compare-actions">
+            <button class="btn btn-primary" onclick="addStudy()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14,2 14,8 20,8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10,9 9,9 8,9"></polyline>
+                </svg>
+                Add Study
+            </button>
+            <button class="btn btn-outline" onclick="downloadComparison()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7,10 12,15 17,10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download Comparison
+            </button>
+            <button class="btn btn-outline" onclick="saveComparison()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                    <polyline points="7,3 7,8 15,8"></polyline>
+                </svg>
+                Save Comparison
+            </button>
+            <button class="btn btn-outline" onclick="clearComparison()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+                Clear Comparison
+            </button>
+            <button class="btn btn-outline" id="createOwnComparisonBtn" onclick="enterCustomComparisonMode()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                Create Your Own Comparison
+            </button>
+            <button class="btn btn-outline hidden" id="backToStandardBtn" onclick="exitCustomComparisonMode()">
+                ← Back to standard view
+            </button>
+        </div>
+    </section>
+
+    <!-- Comparison Content -->
+    <section class="compare-content">
+        {% if papers %}
+        {% set feature_groups = [
+            {
+                'id': 'bibliographic',
+                'label': 'Bibliographic',
+                'features': [
+                    {'key': 'authors', 'label': 'Authors'},
+                    {'key': 'title', 'label': 'Title'},
+                    {'key': 'journal', 'label': 'Journal'},
+                    {'key': 'year', 'label': 'Year'},
+                    {'key': 'citation', 'label': 'Citation'},
+                    {'key': 'abstract', 'label': 'Abstract'}
+                ]
+            },
+            {
+                'id': 'research-design',
+                'label': 'Research Design & Sample',
+                'features': [
+                    {'key': 'sample_size', 'label': 'Sample Size'},
+                    {'key': 'country_region', 'label': 'Country / Region'},
+                    {'key': 'recruitment_source', 'label': 'Recruitment Source'},
+                    {'key': 'demographics', 'label': 'Demographics'},
+                    {'key': 'incentive', 'label': 'Incentive'}
+                ]
+            },
+            {
+                'id': 'measurement-analysis',
+                'label': 'Measurement & Analysis',
+                'features': [
+                    {'key': 'independent_variables', 'label': 'Treatment / Independent Variable(s)'},
+                    {'key': 'dependent_variables', 'label': 'Outcome / Dependent Variable(s)'},
+                    {'key': 'survey_questions', 'label': 'Survey Questions'},
+                    {'key': 'analysis_equations', 'label': 'Analysis Equations'}
+                ]
+            },
+            {
+                'id': 'findings',
+                'label': 'Findings',
+                'features': [
+                    {'key': 'main_effects', 'label': 'Main Effects'},
+                    {'key': 'moderators', 'label': 'Moderators'},
+                    {'key': 'moderation_results', 'label': 'Moderation Results'}
+                ]
+            },
+            {
+                'id': 'context',
+                'label': 'Context',
+                'features': [
+                    {'key': 'ai_context_summary', 'label': 'AI Context Summary'},
+                    {'key': 'temporal_context', 'label': 'Temporal Context'},
+                    {'key': 'gdp_per_capita_usd', 'label': 'GDP Per Capita (USD)'},
+                    {'key': 'gini_coefficient', 'label': 'Gini Coefficient'},
+                    {'key': 'income_group', 'label': 'World Bank Income Group'},
+                    {'key': 'study_language', 'label': 'Study Language'},
+                    {'key': 'platform_language_optimization', 'label': 'Platform Language / Locale Optimization'},
+                    {'key': 'traditional_media_strength', 'label': 'Traditional Media Strength'},
+                    {'key': 'electoral_proximity', 'label': 'Electoral Proximity'},
+                    {'key': 'democracy', 'label': 'Liberal Democracy Index'},
+                    {'key': 'press_freedom', 'label': 'Press Freedom Index'},
+                    {'key': 'internet_freedom', 'label': 'Internet Freedom Score'},
+                    {'key': 'internet_penetration', 'label': 'Internet Penetration'},
+                    {'key': 'governance', 'label': 'Political Stability Score'}
+                ]
+            },
+            {
+                'id': 'internet-social-media',
+                'label': 'Internet And Social Media Usage',
+                'features': [
+                    {'key': 'population_million', 'label': 'Population (Million)'},
+                    {'key': 'internet_users_million', 'label': 'Internet Users (Million)'},
+                    {'key': 'social_media_users_million', 'label': 'Social Media Users (Million)'},
+                    {'key': 'youtube_users_million', 'label': 'YouTube Users (Million)'},
+                    {'key': 'facebook_users_million', 'label': 'Facebook Users (Million)'},
+                    {'key': 'instagram_users_million', 'label': 'Instagram Users (Million)'},
+                    {'key': 'x_users_million', 'label': 'X Users (Million)'},
+                    {'key': 'tiktok_users_million', 'label': 'TikTok Users (Million)'},
+                    {'key': 'linkedin_users_million', 'label': 'LinkedIn Users (Million)'},
+                    {'key': 'messenger_users_million', 'label': 'Messenger Users (Million)'},
+                    {'key': 'snapchat_users_million', 'label': 'Snapchat Users (Million)'},
+                    {'key': 'pinterest_users_million', 'label': 'Pinterest Users (Million)'}
+                ]
+            }
+        ] %}
+
+        <div class="compare-layout" id="compareLayout">
+            <aside class="section-nav" aria-label="Feature groups" id="sectionNav">
+                {% for group in feature_groups %}
+                <button
+                    type="button"
+                    class="section-nav-btn group-{{ group.id }}{% if loop.first %} active{% endif %}"
+                    data-section="{{ group.id }}"
+                    aria-pressed="{% if loop.first %}true{% else %}false{% endif %}">
+                    {{ group.label }}
+                </button>
+                {% endfor %}
+            </aside>
+
+            <div class="compare-main-area">
+            <div class="indicator-selector-panel hidden" id="indicatorSelectorPanel" aria-label="Select indicators">
+                <div class="indicator-selector-header">
+                    <span class="indicator-selector-label">Select indicators to compare:</span>
+                    <button type="button" class="btn btn-outline indicator-dropdown-toggle" id="indicatorDropdownToggle" aria-expanded="false" aria-haspopup="listbox">
+                        <span id="indicatorDropdownLabel">All selected</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"></polyline></svg>
+                    </button>
+                </div>
+                <div class="indicator-selector-dropdown hidden" id="indicatorDropdown" role="listbox">
+                    <div class="indicator-dropdown-actions">
+                        <button type="button" class="indicator-clear-all" id="indicatorClearAll">Clear all</button>
+                        <button type="button" class="indicator-select-all" id="indicatorSelectAll">Select all</button>
+                    </div>
+                    {% for group in feature_groups %}
+                    <div class="indicator-section" data-section-id="{{ group.id }}">
+                        <button type="button" class="indicator-section-header group-{{ group.id }}" data-section-id="{{ group.id }}" aria-label="Toggle {{ group.label }}">
+                            <span class="indicator-section-checkbox" aria-hidden="true"></span>
+                            <span class="indicator-section-label">{{ group.label }}</span>
+                        </button>
+                        <div class="indicator-section-items">
+                            {% for f in group.features %}
+                            <label class="indicator-checkbox-item" role="option">
+                                <input type="checkbox" class="indicator-checkbox" value="{{ f.key }}" data-label="{{ f.label|e }}" data-section-id="{{ group.id }}">
+                                <span>{{ f.label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="indicator-tags" id="indicatorTags"></div>
+            </div>
+
+            <div class="comparison-table-container">
+                <div class="comparison-table">
+                    <div class="table-header">
+                        {% for paper in papers %}
+                        <div class="header-cell study-column study-column-{{ loop.index }}">
+                            <div class="study-header">
+                                <h3>Study {{ loop.index }}</h3>
+                                <button class="remove-study-btn" type="button" onclick="removeStudy('{{ paper.id }}')" aria-label="Remove study {{ loop.index }}">
+                                    &times;
+                                </button>
+                            </div>
+                            <div class="study-title">{{ paper.title }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% for group in feature_groups %}
+                    {% set group_is_first = loop.first %}
+                    {% for feature in group.features %}
+                    <div class="feature-title-row section-content{% if not group_is_first %} section-collapsed{% endif %}" data-section="{{ group.id }}" data-feature-key="{{ feature.key }}">
+                        <div class="feature-row-title">
+                            <span class="feature-row-title-text">{{ feature.label }}</span>
+                            {{ metric_tt.metric_source_tooltip(feature.key) }}
+                        </div>
+                    </div>
+                    <div class="table-row section-content{% if not group_is_first %} section-collapsed{% endif %}" data-section="{{ group.id }}" data-feature-key="{{ feature.key }}">
+                        {% for paper in papers %}
+                        <div class="study-cell" data-study-index="{{ loop.index }}">
+                            {{ render_feature_by_key(paper, feature.key, feature.label, loop.index) }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    {% endfor %}
+                </div>
+
+
+
+
+
+
+            </div>
+
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-comparison">
+            <h3>No Studies Selected</h3>
+            <p class="empty-comparison-onboarding">
+                Start your comparison by<br>
+                <span class="empty-comparison-steps"><strong>1.</strong> Search for a study → <strong>2.</strong> Click &ldquo;Add to Compare&rdquo;</span>
+            </p>
+            <a href="{{ url_for('search') }}" class="btn btn-primary empty-comparison-cta">Add Studies</a>
+        </div>
+        {% endif %}
+    </section>
+
+    <div id="fullTextModal" class="full-text-modal hidden" aria-hidden="true">
+        <div class="modal-backdrop" role="presentation"></div>
+        <div class="modal-dialog" role="dialog" aria-modal="true">
+            <button type="button" class="modal-close" onclick="closeFullTextModal()" aria-label="Close full text">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalFeatureTitle">Full Text</h3>
+                <p class="modal-subtitle" id="modalStudyTitle"></p>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script id="comparisonData" type="application/json">{{ papers|tojson }}</script>
+    <div id="ai-difference-summaries" class="comparison-summary ai-summary-panel" aria-live="polite"></div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const modalElements = {
+        container: null,
+        title: null,
+        subtitle: null,
+        body: null
+    };
+
+    let comparisonPapersData = [];
+
+    // Load comparison from localStorage if no papers are provided via URL
+    document.addEventListener('DOMContentLoaded', function() {
+        modalElements.container = document.getElementById('fullTextModal');
+        modalElements.title = document.getElementById('modalFeatureTitle');
+        modalElements.subtitle = document.getElementById('modalStudyTitle');
+        modalElements.body = document.getElementById('modalBody');
+
+        const modalBackdrop = modalElements.container?.querySelector('.modal-backdrop');
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('click', closeFullTextModal);
+        }
+        if (Array.isArray(comparisonPapersData) && comparisonPapersData.length > 1) {
+            const selectedPaperKeys = comparisonPapersData
+                .map(p => p.paper_key)
+                .filter(Boolean);
+
+            if (selectedPaperKeys.length > 1) {
+                fetchAiDifferenceSummaries(selectedPaperKeys);
+            }
+        }
+
+        document.querySelectorAll('.full-text-trigger').forEach(button => {
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                openFullTextFromButton(button);
+            });
+        });
+
+        setupInlineExpanders();
+
+         document.addEventListener('keydown', handleModalKeydown);
+
+        const comparisonDataElement = document.getElementById('comparisonData');
+        if (comparisonDataElement) {
+            try {
+                comparisonPapersData = JSON.parse(comparisonDataElement.textContent || '[]');
+            } catch (error) {
+                console.error('Failed to parse comparison data:', error);
+                comparisonPapersData = [];
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const idsParam = urlParams.get('ids');
+
+        if (!idsParam) {
+            // Load from localStorage
+            const comparisonIds = JSON.parse(localStorage.getItem('comparisonIds') || '[]');
+            if (comparisonIds.length > 0) {
+                const idsParam = comparisonIds.join(',');
+                window.location.href = "{{ url_for('compare') }}?ids=" + idsParam;
+            }
+        } else {
+            // Set CSS variable for dynamic column count
+            const paperCount = idsParam.split(',').length;
+            console.log('Setting paper count to:', paperCount);
+            document.documentElement.style.setProperty('--paper-count', paperCount);
+            console.log('CSS variable set:', document.documentElement.style.getPropertyValue('--paper-count'));
+
+            // Track comparison page visit
+            trackVisit(idsParam.split(','));
+        }
+
+        // Check content length and hide unnecessary View Full buttons
+        setTimeout(checkContentLength, 100);
+        if (Array.isArray(comparisonPapersData) && comparisonPapersData.length > 1) {
+            const selectedPaperKeys = comparisonPapersData
+                .map(p => p.paper_key)
+                .filter(Boolean);
+
+            if (selectedPaperKeys.length > 1) {
+                fetchAiDifferenceSummaries(selectedPaperKeys);
+            }
+        }
+    });
+
+    // Track comparison page visit
+    function trackVisit(paperIds) {
+        fetch('/api/track/compare_view', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ paper_ids: paperIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Compare view tracked:', data);
+        })
+        .catch(error => {
+            console.error('Error tracking compare view:', error);
+        });
+    }
+
+    function addStudy() {
+        window.location.href = "{{ url_for('search') }}";
+    }
+
+    function removeStudy(paperId) {
+        if (!paperId) {
+            return;
+        }
+
+        const compareUrl = "{{ url_for('compare') }}";
+        const urlParams = new URLSearchParams(window.location.search);
+        const idsParam = urlParams.get('ids');
+
+        let comparisonIds = [];
+        if (idsParam) {
+            comparisonIds = idsParam.split(',').filter(Boolean);
+        } else {
+            comparisonIds = JSON.parse(localStorage.getItem('comparisonIds') || '[]');
+        }
+
+        const updatedIds = comparisonIds.filter(id => id !== paperId);
+        localStorage.setItem('comparisonIds', JSON.stringify(updatedIds));
+
+        if (updatedIds.length > 0) {
+            window.location.href = `${compareUrl}?ids=${updatedIds.join(',')}`;
+        } else {
+            window.location.href = compareUrl;
+        }
+    }
+
+    function downloadComparison() {
+        try {
+            // Get comparison data
+            const comparisonData = generateComparisonData();
+
+            if (!comparisonData.papers || comparisonData.papers.length === 0) {
+                showNotification('No studies to download. Please add studies to compare first.', 'warning');
+                return;
+            }
+
+            // Create CSV content
+            const csvContent = generateCSV(comparisonData);
+
+            // Create timestamp for filename
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `comparison_${timestamp}.csv`;
+
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Clean up the URL object
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+
+            // Track download
+            const paperIds = comparisonData.papers.map(p => p.id);
+            trackDownload(paperIds);
+
+            showNotification('Comparison downloaded successfully as ' + filename, 'success');
+        } catch (error) {
+            console.error('Error downloading comparison:', error);
+            showNotification('Failed to download comparison. Please try again.', 'error');
+        }
+    }
+
+    // Track comparison download
+    function trackDownload(paperIds) {
+        fetch('/api/track/download', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ paper_ids: paperIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Download tracked:', data);
+        })
+        .catch(error => {
+            console.error('Error tracking download:', error);
+        });
+    }
+
+    function saveComparison() {
+        // Get comparison data
+        const comparisonData = generateComparisonData();
+
+        // Get saved comparisons
+        let savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+
+        // Create new comparison entry
+        const comparisonEntry = {
+            id: Date.now().toString(),
+            name: `Comparison ${savedComparisons.length + 1}`,
+            date: new Date().toLocaleDateString(),
+            papers: comparisonData.papers,
+            features: comparisonData.features
+        };
+
+        // Add to saved comparisons
+        savedComparisons.push(comparisonEntry);
+        localStorage.setItem('savedComparisons', JSON.stringify(savedComparisons));
+
+        showNotification('Comparison saved successfully');
+    }
+
+    function generateComparisonData() {
+        const papers = Array.isArray(comparisonPapersData) ? comparisonPapersData : [];
+        const features = [
+              'Authors', 'Title', 'Journal', 'Year', 'Citation', 'Abstract',
+              'Sample Size', 'Country / Region', 'Recruitment Source', 'Demographics', 'Incentive',
+              'Treatment / Independent Variable(s)',
+              'Outcome / Dependent Variable(s)', 'Survey Questions', 'Analysis Equations',
+              'Main Effects', 'Moderators', 'Moderation Results',
+              'AI Context Summary', 'Temporal Context',
+              'GDP Per Capita (USD)', 'Gini Coefficient', 'World Bank Income Group', 'Study Language',
+
+              'Platform Language / Locale Optimization', 'Traditional Media Strength', 'Electoral Proximity',
+
+              'Democracy', 'Press Freedom', 'Internet Freedom', 'Internet Penetration', 'Governance', 'Polarization',
+              'Population (Million)', 'Internet Users (Million)', 'Social Media Users (Million)',
+              'YouTube Users (Million)', 'Facebook Users (Million)', 'Instagram Users (Million)',
+              'X Users (Million)', 'TikTok Users (Million)', 'LinkedIn Users (Million)',
+              'Messenger Users (Million)', 'Snapchat Users (Million)', 'Pinterest Users (Million)'
+            ];
+
+        return { papers, features };
+    }
+
+    function generateCSV(data) {
+        const comparisonPapers = Array.isArray(data?.papers) ? data.papers : [];
+        const comparisonFeatures = Array.isArray(data?.features) ? data.features : [];
+
+        // Create header row
+        let csv = 'Feature,' + comparisonPapers.map((paper, index) => `Study ${index + 1}`).join(',') + '\n';
+
+        // Add data rows
+        comparisonFeatures.forEach(feature => {
+            const row = [feature];
+            comparisonPapers.forEach(paper => {
+                let value = '';
+                switch(feature) {
+                    case 'Authors':
+                        value = paper.authors.join(', ');
+                        break;
+                    case 'Title':
+                        value = paper.title;
+                        break;
+                    case 'Journal':
+                        value = paper.journal;
+                        break;
+                    case 'Year':
+                        value = paper.year;
+                        break;
+                    case 'Citation':
+                        value = paper.citation || '';
+                        break;
+                    case 'Abstract':
+                        value = paper.abstract;
+                        break;
+                    case 'AI Context Summary':
+                        value = paper.extracted_features.ai_context_summary || '';
+                        break;
+                    case 'Sample Size':
+                        value = paper.sample_size ? paper.sample_size.toLocaleString() : '';
+                        break;
+                    case 'Country / Region':
+                        value = paper.extracted_features.country_region || '';
+                        break;
+                    case 'Recruitment Source':
+                        value = paper.extracted_features.recruitment_source || '';
+                        break;
+                    case 'Demographics':
+                        value = paper.extracted_features.demographics || '';
+                        break;
+                    case 'Incentive':
+                        value = paper.extracted_features.incentive || '';
+                        break;
+                    case 'Treatment / Independent Variable(s)':
+                        value = paper.extracted_features.independent_variables || '';
+                        break;
+                    case 'Outcome / Dependent Variable(s)':
+                        value = paper.extracted_features.dependent_variables || '';
+                        break;
+                    case 'Survey Questions':
+                        value = paper.extracted_features.survey_questions || '';
+                        break;
+                    case 'Analysis Equations':
+                        value = paper.extracted_features.analysis_equations || '';
+                        break;
+                    case 'Main Effects':
+                        value = paper.extracted_features.main_effects || '';
+                        break;
+                    case 'Moderators':
+                        value = paper.extracted_features.moderators || '';
+                        break;
+                    case 'Moderation Results':
+                        value = paper.extracted_features.moderation_results || '';
+                        break;
+                    case 'Temporal Context':
+                        value = paper.extracted_features.temporal_context || '';
+                        break;
+                    case 'GDP Per Capita (USD)':
+                        value = paper.extracted_features.gdp_per_capita_usd || '';
+                        break;
+                    case 'Gini Coefficient':
+                        value = paper.extracted_features.gini_coefficient || '';
+                        break;
+                    case 'World Bank Income Group':
+                        value = paper.extracted_features.income_group || '';
+                        break;
+                    case 'Study Language':
+                        value = paper.extracted_features.study_language || '';
+                        break;
+                    case 'Platform Language / Locale Optimization':
+                        value = paper.extracted_features.platform_language_optimization || '';
+                        break;
+                    case 'Traditional Media Strength':
+                        value = paper.extracted_features.traditional_media_strength || '';
+                        break;
+                    case 'Electoral Proximity':
+                        value = paper.extracted_features.electoral_proximity || '';
+                        break;
+                    case 'Democracy':
+                      value = paper.extracted_features.democracy || '';
+                      break;
+                    case 'Press Freedom':
+                      value = paper.extracted_features.press_freedom || '';
+                      break;
+                    case 'Internet Freedom':
+                      value = paper.extracted_features.internet_freedom || '';
+                      break;
+                    case 'Internet Penetration':
+                      value = paper.extracted_features.internet_penetration || '';
+                      break;
+                    case 'Governance':
+                      value = paper.extracted_features.governance || '';
+                      break;
+                    case 'Polarization':
+                      value = paper.extracted_features.polarization || '';
+                      break;
+
+                    case 'Population (Million)':
+                      value = paper.extracted_features.population_million || '';
+                      break;
+                    case 'Internet Users (Million)':
+                      value = paper.extracted_features.internet_users_million || '';
+                      break;
+                    case 'Social Media Users (Million)':
+                      value = paper.extracted_features.social_media_users_million || '';
+                      break;
+                    case 'YouTube Users (Million)':
+                      value = paper.extracted_features.youtube_users_million || '';
+                      break;
+                    case 'Facebook Users (Million)':
+                      value = paper.extracted_features.facebook_users_million || '';
+                      break;
+                    case 'Instagram Users (Million)':
+                      value = paper.extracted_features.instagram_users_million || '';
+                      break;
+                    case 'X Users (Million)':
+                      value = paper.extracted_features.x_users_million || '';
+                      break;
+                    case 'TikTok Users (Million)':
+                      value = paper.extracted_features.tiktok_users_million || '';
+                      break;
+                    case 'LinkedIn Users (Million)':
+                      value = paper.extracted_features.linkedin_users_million || '';
+                      break;
+                    case 'Messenger Users (Million)':
+                      value = paper.extracted_features.messenger_users_million || '';
+                      break;
+                    case 'Snapchat Users (Million)':
+                      value = paper.extracted_features.snapchat_users_million || '';
+                      break;
+                    case 'Pinterest Users (Million)':
+                      value = paper.extracted_features.pinterest_users_million || '';
+                      break;
+                }
+                // Convert to string and escape commas and quotes in CSV
+                value = String(value || '');
+                value = value.replace(/"/g, '""');
+                if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                    value = '"' + value + '"';
+                }
+                row.push(value);
+            });
+            csv += row.join(',') + '\n';
+        });
+
+        return csv;
+    }
+
+    function clearComparison() {
+        localStorage.removeItem('comparisonIds');
+        window.location.href = "{{ url_for('compare') }}";
+    }
+
+    function showNotification(message, type = 'success') {
+        // Define colors for different types
+        const colors = {
+            success: '#28a745',
+            warning: '#ffc107',
+            error: '#dc3545',
+            info: '#17a2b8'
+        };
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${colors[type] || colors.success};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 14px;
+            font-weight: 500;
+            max-width: 400px;
+            word-wrap: break-word;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 3000);
+    }
+
+    function openFullTextFromButton(button) {
+        if (!button) {
+            return;
+        }
+
+        const targetId = button.dataset.fullTextId;
+        const featureLabel = button.dataset.featureLabel || 'Full Text';
+        const studyIndex = parseInt(button.dataset.studyIndex || '0', 10);
+        let studyLabel = button.dataset.studyTitle || '';
+
+        const fullTextElement = targetId ? document.getElementById(targetId) : null;
+        const htmlContent = fullTextElement ? fullTextElement.innerHTML.trim() : '';
+
+        if (!fullTextElement || !htmlContent) {
+            showNotification('Full text is not available for this feature.', 'warning');
+            return;
+        }
+
+        if (!studyLabel && Number.isInteger(studyIndex)) {
+            const headerRow = document.querySelector('.table-header');
+            const headerCell = headerRow?.children?.[studyIndex];
+            if (headerCell) {
+                const titleElement = headerCell.querySelector('.study-title');
+                const metaElement = headerCell.querySelector('.study-meta');
+                studyLabel = titleElement ? titleElement.textContent.trim() : `Study ${studyIndex}`;
+                const metaText = metaElement ? metaElement.textContent.trim() : '';
+                if (metaText) {
+                    studyLabel = studyLabel ? `${studyLabel} • ${metaText}` : metaText;
+                }
+            }
+        }
+
+        showFullTextModal(featureLabel, studyLabel, htmlContent);
+    }
+
+    function showFullTextModal(featureLabel, studyLabel, htmlContent) {
+        if (!modalElements.container) {
+            return;
+        }
+
+        modalElements.title.textContent = featureLabel || 'Full Text';
+
+        if (studyLabel) {
+            modalElements.subtitle.textContent = studyLabel;
+            modalElements.subtitle.style.display = 'block';
+        } else {
+            modalElements.subtitle.textContent = '';
+            modalElements.subtitle.style.display = 'none';
+        }
+
+        modalElements.body.innerHTML = htmlContent;
+        modalElements.container.classList.remove('hidden');
+        modalElements.container.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeFullTextModal() {
+        if (!modalElements.container) {
+            return;
+        }
+
+        modalElements.container.classList.add('hidden');
+        modalElements.container.setAttribute('aria-hidden', 'true');
+        modalElements.body.innerHTML = '';
+        document.body.classList.remove('modal-open');
+    }
+
+    function handleModalKeydown(event) {
+        if (event.key === 'Escape' && modalElements.container && !modalElements.container.classList.contains('hidden')) {
+            closeFullTextModal();
+        }
+    }
+
+    function setupInlineExpanders() {
+        document.querySelectorAll('.inline-expand-toggle').forEach(button => {
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                toggleInlineExpansion(button);
+            });
+        });
+    }
+
+    function toggleInlineExpansion(button) {
+        if (!button) {
+            return;
+        }
+
+        const fullText = button.dataset.fullText;
+        const truncatedText = button.dataset.truncatedText;
+        const previewSpan = button.closest('.summary-preview');
+        const textSpan = previewSpan ? previewSpan.querySelector('.summary-text') : null;
+
+        if (!textSpan || !fullText || !truncatedText) {
+            return;
+        }
+
+        const tmplFull = previewSpan.querySelector('template.inline-expand-highlight-full');
+        const tmplTrunc = previewSpan.querySelector('template.inline-expand-highlight-trunc');
+        let useHtml = false;
+        let fullHtmlParsed;
+        let truncatedHtmlParsed;
+        if (tmplFull && tmplTrunc) {
+            fullHtmlParsed = tmplFull.innerHTML;
+            truncatedHtmlParsed = tmplTrunc.innerHTML;
+            useHtml = true;
+        } else {
+            const fullHtmlRaw = button.getAttribute('data-full-html');
+            const truncatedHtmlRaw = button.getAttribute('data-truncated-html');
+            if (fullHtmlRaw && truncatedHtmlRaw) {
+                try {
+                    fullHtmlParsed = JSON.parse(fullHtmlRaw);
+                    truncatedHtmlParsed = JSON.parse(truncatedHtmlRaw);
+                    useHtml = true;
+                } catch (err) {
+                    useHtml = false;
+                }
+            }
+        }
+
+        const isExpanded = button.getAttribute('aria-expanded') === 'true';
+        if (isExpanded) {
+            if (useHtml) {
+                textSpan.innerHTML = truncatedHtmlParsed;
+            } else {
+                textSpan.textContent = truncatedText;
+            }
+            button.setAttribute('aria-expanded', 'false');
+            button.classList.remove('expanded');
+            button.setAttribute('aria-label', 'View full text');
+            button.setAttribute('title', 'View full text');
+        } else {
+            if (useHtml) {
+                textSpan.innerHTML = fullHtmlParsed;
+            } else {
+                textSpan.textContent = fullText;
+            }
+            button.setAttribute('aria-expanded', 'true');
+            button.classList.add('expanded');
+            button.setAttribute('aria-label', 'Hide full text');
+            button.setAttribute('title', 'Hide full text');
+        }
+    }
+
+    function checkContentLength() {
+         // Hide View Full buttons when verbatim content is same as condensed content
+         // This handles cases where the database may have identical condensed and verbatim versions
+        document.querySelectorAll('.feature-content').forEach(content => {
+            const summary = content.querySelector('.feature-summary');
+            const summaryText = summary ? summary.textContent.trim() : '';
+
+            content.querySelectorAll('.full-text-trigger').forEach(button => {
+                const targetId = button.dataset.fullTextId;
+                const fullTextElement = targetId ? document.getElementById(targetId) : null;
+                const fullTextContent = fullTextElement ? fullTextElement.textContent.trim() : '';
+
+                if (summaryText && fullTextContent && summaryText === fullTextContent) {
+                    button.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Section selector behavior: only one subtitle group visible at a time
+    function setupSectionSelector() {
+        const sectionButtons = document.querySelectorAll('.section-nav-btn');
+        if (!sectionButtons.length) return;
+
+        function activateSection(sectionId) {
+            document.querySelectorAll('.section-nav-btn').forEach(button => {
+                const isActive = button.dataset.section === sectionId;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+
+            document.querySelectorAll('.section-content').forEach(row => {
+                const isActive = row.dataset.section === sectionId;
+                row.classList.toggle('section-collapsed', !isActive);
+            });
+        }
+
+        sectionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                activateSection(button.dataset.section);
+            });
+        });
+
+        const defaultSection = sectionButtons[0].dataset.section;
+        activateSection(defaultSection);
+    }
+
+    // Create Your Own Comparison - custom mode
+    let customComparisonMode = false;
+
+    function enterCustomComparisonMode() {
+        customComparisonMode = true;
+        const layout = document.getElementById('compareLayout');
+        const sectionNav = document.getElementById('sectionNav');
+        const panel = document.getElementById('indicatorSelectorPanel');
+        const createBtn = document.getElementById('createOwnComparisonBtn');
+        const backBtn = document.getElementById('backToStandardBtn');
+
+        if (!layout || !sectionNav || !panel) return;
+
+        layout.classList.add('compare-custom-mode');
+        sectionNav.classList.add('hidden');
+        panel.classList.remove('hidden');
+        createBtn.classList.add('hidden');
+        backBtn.classList.remove('hidden');
+
+        // Expand all sections (remove section-collapsed)
+        document.querySelectorAll('.section-content').forEach(row => {
+            row.classList.remove('section-collapsed');
+        });
+
+        // Select all indicators by default
+        indicatorTagsExpanded = false;
+        document.querySelectorAll('.indicator-checkbox').forEach(cb => {
+            cb.checked = true;
+        });
+        updateIndicatorTags();
+        applyIndicatorFilter();
+        updateSectionHeaderStates();
+    }
+
+    function exitCustomComparisonMode() {
+        customComparisonMode = false;
+        const layout = document.getElementById('compareLayout');
+        const sectionNav = document.getElementById('sectionNav');
+        const panel = document.getElementById('indicatorSelectorPanel');
+        const createBtn = document.getElementById('createOwnComparisonBtn');
+        const backBtn = document.getElementById('backToStandardBtn');
+        const dropdown = document.getElementById('indicatorDropdown');
+
+        if (!layout || !sectionNav || !panel) return;
+
+        layout.classList.remove('compare-custom-mode');
+        sectionNav.classList.remove('hidden');
+        panel.classList.add('hidden');
+        createBtn.classList.remove('hidden');
+        backBtn.classList.add('hidden');
+        if (dropdown) dropdown.classList.add('hidden');
+
+        setupSectionSelector();
+    }
+
+    function getSelectedIndicatorKeys() {
+        return Array.from(document.querySelectorAll('.indicator-checkbox:checked')).map(cb => cb.value);
+    }
+
+    function applyIndicatorFilter() {
+        const selected = getSelectedIndicatorKeys();
+        document.querySelectorAll('[data-feature-key]').forEach(el => {
+            const key = el.dataset.featureKey;
+            el.classList.toggle('indicator-hidden', !selected.includes(key));
+        });
+    }
+
+    let indicatorTagsExpanded = false;
+
+    function updateIndicatorTags() {
+        const container = document.getElementById('indicatorTags');
+        if (!container) return;
+        const selected = Array.from(document.querySelectorAll('.indicator-checkbox:checked'));
+        const label = document.getElementById('indicatorDropdownLabel');
+        if (label) label.textContent = selected.length + ' indicator(s) selected';
+        const showAll = indicatorTagsExpanded || selected.length <= 8;
+        const tagsToShow = showAll ? selected : selected.slice(0, 8);
+        const moreCount = selected.length - 8;
+        let html = tagsToShow.map(cb => {
+            const l = cb.dataset.label || cb.value;
+            return '<span class="indicator-tag">' + escapeHtml(l) + '</span>';
+        }).join('');
+        if (!showAll && moreCount > 0) {
+            html += '<button type="button" class="indicator-tag indicator-tag-expand">+' + moreCount + ' more</button>';
+        } else if (showAll && moreCount > 0) {
+            html += '<button type="button" class="indicator-tag indicator-tag-collapse">Collapse</button>';
+        }
+        container.innerHTML = html;
+        container.querySelector('.indicator-tag-expand')?.addEventListener('click', () => {
+            indicatorTagsExpanded = true;
+            updateIndicatorTags();
+        });
+        container.querySelector('.indicator-tag-collapse')?.addEventListener('click', () => {
+            indicatorTagsExpanded = false;
+            updateIndicatorTags();
+        });
+    }
+
+    function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    function setupIndicatorSelector() {
+        const toggle = document.getElementById('indicatorDropdownToggle');
+        const dropdown = document.getElementById('indicatorDropdown');
+        const clearAllBtn = document.getElementById('indicatorClearAll');
+        if (!toggle || !dropdown) return;
+
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = dropdown.classList.toggle('hidden');
+            toggle.setAttribute('aria-expanded', !open);
+        });
+
+        document.addEventListener('click', () => {
+            dropdown.classList.add('hidden');
+            toggle.setAttribute('aria-expanded', 'false');
+        });
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.indicator-checkbox').forEach(cb => { cb.checked = false; });
+                updateIndicatorTags();
+                applyIndicatorFilter();
+                updateSectionHeaderStates();
+            });
+        }
+
+        const selectAllBtn = document.getElementById('indicatorSelectAll');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.indicator-checkbox').forEach(cb => { cb.checked = true; });
+                updateIndicatorTags();
+                applyIndicatorFilter();
+                updateSectionHeaderStates();
+            });
+        }
+
+        document.querySelectorAll('.indicator-section-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const section = header.closest('.indicator-section');
+                if (!section) return;
+                const checkboxes = section.querySelectorAll('.indicator-checkbox');
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                checkboxes.forEach(cb => { cb.checked = !allChecked; });
+                updateIndicatorTags();
+                applyIndicatorFilter();
+                updateSectionHeaderStates();
+            });
+        });
+
+        document.querySelectorAll('.indicator-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => {
+                updateIndicatorTags();
+                applyIndicatorFilter();
+                updateSectionHeaderStates();
+            });
+        });
+    }
+
+    function updateSectionHeaderStates() {
+        document.querySelectorAll('.indicator-section').forEach(section => {
+            const sectionId = section.dataset.sectionId;
+            const checkboxes = section.querySelectorAll('.indicator-checkbox');
+            const checked = section.querySelectorAll('.indicator-checkbox:checked');
+            const header = section.querySelector('.indicator-section-header');
+            const box = header && header.querySelector('.indicator-section-checkbox');
+            if (!box) return;
+            box.classList.remove('indicator-section-all', 'indicator-section-none', 'indicator-section-some');
+            if (checked.length === 0) box.classList.add('indicator-section-none');
+            else if (checked.length === checkboxes.length) box.classList.add('indicator-section-all');
+            else box.classList.add('indicator-section-some');
+        });
+    }
+
+    // Initialize section selector when DOM is ready
+    function initComparePage() {
+        setupSectionSelector();
+        setupIndicatorSelector();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initComparePage);
+    } else {
+        initComparePage();
+    }
+</script>
+
+<script>
+async function fetchAiDifferenceSummaries(selectedPaperKeys) {
+  const container = document.getElementById("ai-difference-summaries");
+  setAiSummaryState("Generating AI difference summaries...", "loading");
+
+  try {
+    const response = await fetch("/api/compare-ai-differences", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        paper_keys: selectedPaperKeys
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setAiSummaryState(`Error: ${data.error || "Something went wrong"}`, "error");
+      return;
+    }
+
+    if (!data.results) {
+      setAiSummaryState("Could not generate AI comparisons.", "empty");
+      return;
+    }
+
+    renderAiSummaries(data.results);
+  } catch (error) {
+    setAiSummaryState(`Error: ${error.message}`, "error");
+  }
+}
+
+function setAiSummaryState(message, variant = "loading") {
+  const container = document.getElementById("ai-difference-summaries");
+  if (!container) return;
+
+  const stateClass = variant === "error"
+    ? "is-error"
+    : variant === "empty"
+      ? "is-empty"
+      : "is-loading";
+  const icon = variant === "error" ? "!" : variant === "empty" ? "i" : "";
+  const iconMarkup = variant === "loading"
+    ? '<span class="ai-summary-spinner" aria-hidden="true"></span>'
+    : `<span class="ai-summary-state-icon" aria-hidden="true">${icon}</span>`;
+
+  container.innerHTML = `
+    <div class="ai-summary-header">
+      <h2 class="summary-title">AI-powered comparison</h2>
+    </div>
+    <div class="ai-summary-state ${stateClass}">
+      ${iconMarkup}
+      <p>${message}</p>
+    </div>
+  `;
+}
+
+function normalizeAiCategoryName(categoryName) {
+  return String(categoryName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+const AI_CATEGORY_DISPLAY_ORDER = [
+  "Research Design & Sample",
+  "Measurement & Analysis",
+  "Findings",
+  "Context"
+];
+
+function renderAiSummaries(results) {
+  const container = document.getElementById("ai-difference-summaries");
+  container.innerHTML = "";
+
+  const raw = results || {};
+  const entries = [
+    ...AI_CATEGORY_DISPLAY_ORDER.filter((name) => Object.prototype.hasOwnProperty.call(raw, name)).map(
+      (name) => [name, raw[name]]
+    ),
+    ...Object.entries(raw).filter(
+      ([name]) => !AI_CATEGORY_DISPLAY_ORDER.includes(name)
+    )
+  ];
+  if (!entries.length) {
+    setAiSummaryState("No AI summaries are available for this comparison yet.", "empty");
+    return;
+  }
+
+  const header = document.createElement("div");
+  header.className = "ai-summary-header";
+
+  const heading = document.createElement("h2");
+  heading.className = "summary-title";
+  heading.textContent = "AI-powered comparison";
+  header.appendChild(heading);
+  container.appendChild(header);
+
+  const grid = document.createElement("div");
+  grid.className = "ai-summary-grid";
+
+  entries.forEach(([categoryName, categoryData]) => {
+    const section = document.createElement("article");
+    section.className = "ai-summary-card";
+    section.dataset.category = normalizeAiCategoryName(categoryName);
+
+    const title = document.createElement("h3");
+    title.className = "ai-summary-card-title";
+    title.textContent = categoryName;
+    section.appendChild(title);
+
+    const text = document.createElement("div");
+    text.className = "ai-summary-card-text";
+
+    const held = categoryData.held_constant || "";
+    const varies = categoryData.varies || "";
+    const open = categoryData.what_this_leaves_open || "";
+
+    text.innerHTML = `
+      <p><strong>Held constant:</strong> ${held}</p>
+      <p><strong>Varies:</strong> ${varies}</p>
+      <p><strong>What this leaves open:</strong> ${open}</p>
+    `;
+
+    section.appendChild(text);
+
+    grid.appendChild(section);
+  });
+
+  container.appendChild(grid);
+}
+
+</script>
+{% endblock %}

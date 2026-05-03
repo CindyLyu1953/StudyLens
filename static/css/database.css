@@ -1,0 +1,175 @@
+/* Styles for Database Page */
+
+.database-header {
+    background: white;
+    padding: 3rem 0;
+    border-bottom: 1px solid #e1e8ed;
+    margin-bottom: 2rem;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding-left: calc(50vw - 50%);
+    padding-right: calc(50vw - 50%);
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.page-description {
+    font-size: 1.125rem;
+    color: #7f8c8d;
+    margin-bottom: 0;
+}
+
+.database-stats {
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.stat-number {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.database-info {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #3498db;
+}
+
+.info-content {
+    line-height: 1.8;
+    color: #555;
+}
+
+.info-content p {
+    margin-bottom: 1.5rem;
+}
+
+.info-content p:last-child {
+    margin-bottom: 0;
+}
+
+.papers-list {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.papers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.paper-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e1e8ed;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.paper-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: #3498db;
+}
+
+.paper-link {
+    display: block;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+}
+
+.paper-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.paper-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #7f8c8d;
+}
+
+.paper-authors {
+    font-style: italic;
+}
+
+.paper-year {
+    font-weight: 500;
+    color: #3498db;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .database-header {
+        padding: 2rem 0;
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+    }
+
+    .papers-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .database-info,
+    .papers-list {
+        padding: 1.5rem;
+    }
+}
+

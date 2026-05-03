@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - StudyLens{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Search Bar -->
+    <section class="search-section">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Keywords, authors, country, income group…" class="search-input" value="{{ query }}">
+            <button class="search-btn" onclick="performSearch()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                Search
+            </button>
+        </div>
+    </section>
+
+    <!-- Filters Section -->
+    <section class="filters-section">
+        <div class="filters-header">
+            <h3 class="filters-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="6" x2="20" y2="6"></line>
+                    <line x1="4" y1="12" x2="20" y2="12"></line>
+                    <line x1="4" y1="18" x2="20" y2="18"></line>
+                    <circle cx="6" cy="6" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="16" cy="18" r="2"></circle>
+                </svg>
+                Filters
+            </h3>
+            <button class="btn btn-sm btn-outline" onclick="clearFilters()">Clear All</button>
+        </div>
+
+        <div class="filters-grid">
+            <!-- Year Range Filter -->
+            <div class="filter-group">
+                <label class="filter-label">Year Range</label>
+                <div class="filter-inputs">
+                    <input type="number" id="yearFrom" class="filter-input" placeholder="From" min="1900" max="2030">
+                    <span>-</span>
+                    <input type="number" id="yearTo" class="filter-input" placeholder="To" min="1900" max="2030">
+                </div>
+            </div>
+
+            <!-- Journal Filter -->
+            <div class="filter-group">
+                <label class="filter-label">Journal</label>
+                <select id="journalFilter" class="filter-select">
+                    <option value="">All Journals</option>
+                    {% for journal in journals %}
+                    <option value="{{ journal }}">{{ journal }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Country Filter -->
+            <div class="filter-group">
+                <label class="filter-label">Country/Region</label>
+                <select id="countryFilter" class="filter-select">
+                    <option value="">All Countries</option>
+                    <option value="USA">United States</option>
+                    <option value="UK">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Germany">Germany</option>
+                    <option value="France">France</option>
+                    <option value="China">China</option>
+                    <option value="Japan">Japan</option>
+                    <option value="South Korea">South Korea</option>
+                    <option value="India">India</option>
+                    <option value="Brazil">Brazil</option>
+                    <option value="Netherlands">Netherlands</option>
+                    <option value="Sweden">Sweden</option>
+                    <option value="Switzerland">Switzerland</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filters-actions">
+            <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+        </div>
+    </section>
+
+    <!-- Search Results -->
+    <section class="results-section">
+        <div class="results-header">
+            <h2 class="results-title">Search Results</h2>
+            <div class="results-count">
+                <span>Found {{ total_results }} relevant articles</span>
+            </div>
+        </div>
+
+        <div class="results-list">
+            {% if results %}
+                {% for paper in results %}
+                <article class="result-item">
+                    <div class="result-header">
+                        <h3 class="result-title">
+                            <a href="{{ url_for('article', paper_id=paper.id) }}">{{ paper.title }}</a>
+                        </h3>
+                        <div class="result-actions">
+                            <button class="btn btn-outline btn-sm" onclick="toggleFavorite('{{ paper.id }}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                                <span class="favorite-text">Favorite</span>
+                            </button>
+                            <button class="btn btn-outline btn-sm compare-btn" data-paper-id="{{ paper.id }}" onclick="toggleCompare('{{ paper.id }}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 11H5a2 2 0 0 0-2 2v3c0 1.1.9 2 2 2h4m0-7v7m0-7h10a2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H9m0-7V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                <span class="compare-text">Compare</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="result-meta">
+                        <div class="result-authors">
+                            <strong>Authors:</strong> {{ paper.authors|join(', ') }}
+                        </div>
+                        <div class="result-journal">
+                            <strong>Journal:</strong> {{ paper.journal }}, {{ paper.year }}
+                        </div>
+                        <div class="result-citations">
+                            {% set citation_url = paper.citation|extract_url %}
+                            {% if citation_url %}
+                                <strong>Link:</strong> <a href="{{ citation_url }}" target="_blank" rel="noopener noreferrer" class="citation-link">View Article</a>
+                            {% else %}
+                                <strong>Link:</strong> Not available
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="result-abstract">
+                        <p>{{ paper.abstract|highlight_keywords('abstract') }}</p>
+                    </div>
+
+                    <div class="result-footer">
+                        <a href="{{ url_for('article', paper_id=paper.id) }}" class="btn btn-primary">View Details</a>
+                    </div>
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="no-results">
+                    <h3>No results found</h3>
+                    <p>Try adjusting your search criteria or browse all articles.</p>
+                    <a href="{{ url_for('search') }}" class="btn btn-primary">Browse All Articles</a>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if pagination %}
+        <!-- Pagination -->
+        <nav class="pagination" aria-label="Search results pages">
+            {% if pagination.prev_url %}
+            <a class="pagination-btn" href="{{ pagination.prev_url }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15,18 9,12 15,6"></polyline>
+                </svg>
+                Previous
+            </a>
+            {% else %}
+            <span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15,18 9,12 15,6"></polyline>
+                </svg>
+                Previous
+            </span>
+            {% endif %}
+            <div class="pagination-pages">
+                {% for p in pagination.pages %}
+                {% if p.active %}
+                <span class="pagination-page active" aria-current="page">{{ p.num }}</span>
+                {% else %}
+                <a class="pagination-page" href="{{ p.url }}">{{ p.num }}</a>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% if pagination.next_url %}
+            <a class="pagination-btn" href="{{ pagination.next_url }}">
+                Next
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9,18 15,12 9,6"></polyline>
+                </svg>
+            </a>
+            {% else %}
+            <span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
+                Next
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9,18 15,12 9,6"></polyline>
+                </svg>
+            </span>
+            {% endif %}
+        </nav>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const MAX_COMPARISON_PAPERS = 5;
+
+    function performSearch() {
+        const searchInput = document.getElementById('searchInput');
+        const query = searchInput.value.trim();
+        const filters = getActiveFilters();
+
+        const params = [];
+        if (query) {
+            params.push('q=' + encodeURIComponent(query));
+        }
+        Object.keys(filters).forEach(function(key) {
+            params.push(key + '=' + encodeURIComponent(filters[key]));
+        });
+
+        let url = "{{ url_for('search') }}";
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+
+        updateUserStats('searches');
+        window.location.href = url;
+    }
+
+    // Track search on page load if there's a query
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get('q');
+        if (query) {
+            // Wait for DOM to be fully rendered, then count results
+            setTimeout(function() {
+                const numResults = {{ total_results|default(0) }};
+                console.log('Number of results found:', numResults); // Debug log
+                trackSearch(query, numResults);
+            }, 100);
+        }
+    });
+
+    function getActiveFilters() {
+        const filters = {};
+
+        const yearFrom = document.getElementById('yearFrom')?.value;
+        const yearTo = document.getElementById('yearTo')?.value;
+        const journal = document.getElementById('journalFilter')?.value;
+        const country = document.getElementById('countryFilter')?.value;
+
+        if (yearFrom) filters.year_from = yearFrom;
+        if (yearTo) filters.year_to = yearTo;
+        if (journal) filters.journal = journal;
+        if (country) filters.country = country;
+
+        return filters;
+    }
+
+    function trackSearch(query, numResults) {
+        const filters = getActiveFilters();
+
+        fetch('/api/track/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                search_query: query,
+                filters_used: filters,
+                num_results: numResults
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Search tracked:', data);
+        })
+        .catch(error => {
+            console.error('Error tracking search:', error);
+        });
+    }
+
+    function applyFilters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get('q') || '';
+        const filters = getActiveFilters();
+
+        const params = [];
+        if (query) {
+            params.push('q=' + encodeURIComponent(query));
+        }
+        Object.keys(filters).forEach(function(key) {
+            params.push(key + '=' + encodeURIComponent(filters[key]));
+        });
+
+        let url = "{{ url_for('search') }}";
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+
+        window.location.href = url;
+    }
+
+    function clearFilters() {
+        document.getElementById('yearFrom').value = '';
+        document.getElementById('yearTo').value = '';
+        document.getElementById('journalFilter').value = '';
+        document.getElementById('countryFilter').value = '';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get('q') || '';
+        window.location.href = "{{ url_for('search') }}?q=" + encodeURIComponent(query);
+    }
+
+    // Restore filters from URL and init Compare button states
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (urlParams.get('year_from')) {
+            document.getElementById('yearFrom').value = urlParams.get('year_from');
+        }
+        if (urlParams.get('year_to')) {
+            document.getElementById('yearTo').value = urlParams.get('year_to');
+        }
+        if (urlParams.get('journal')) {
+            document.getElementById('journalFilter').value = urlParams.get('journal');
+        }
+        if (urlParams.get('country')) {
+            document.getElementById('countryFilter').value = urlParams.get('country');
+        }
+
+        initCompareButtons();
+    });
+
+    function toggleCompare(paperId) {
+        const button = event.target.closest('button.compare-btn');
+        let comparisonIds = JSON.parse(localStorage.getItem('comparisonIds') || '[]');
+
+        if (comparisonIds.includes(paperId)) {
+            // Remove from comparison
+            comparisonIds = comparisonIds.filter(id => id !== paperId);
+            localStorage.setItem('comparisonIds', JSON.stringify(comparisonIds));
+            setCompareButtonState(button, false);
+            showNotification('Removed from comparison');
+        } else {
+            // Add to comparison
+            comparisonIds.push(paperId);
+            if (comparisonIds.length > MAX_COMPARISON_PAPERS) {
+                comparisonIds = comparisonIds.slice(-MAX_COMPARISON_PAPERS);
+                alert(`Maximum ${MAX_COMPARISON_PAPERS} papers can be compared. The oldest paper has been removed.`);
+            }
+            localStorage.setItem('comparisonIds', JSON.stringify(comparisonIds));
+            updateUserStats('comparisons');
+            setCompareButtonState(button, true);
+            showNotification(`Added to comparison (${comparisonIds.length}/${MAX_COMPARISON_PAPERS})`);
+        }
+    }
+
+    function setCompareButtonState(button, isAdded) {
+        const textSpan = button.querySelector('.compare-text');
+        if (isAdded) {
+            button.classList.add('compare-btn-added');
+            button.classList.remove('btn-outline');
+            textSpan.textContent = 'Added';
+        } else {
+            button.classList.remove('compare-btn-added');
+            button.classList.add('btn-outline');
+            textSpan.textContent = 'Compare';
+        }
+    }
+
+    function initCompareButtons() {
+        const comparisonIds = JSON.parse(localStorage.getItem('comparisonIds') || '[]');
+        document.querySelectorAll('button.compare-btn').forEach(button => {
+            const paperId = button.getAttribute('data-paper-id');
+            if (comparisonIds.includes(paperId)) {
+                setCompareButtonState(button, true);
+            }
+        });
+    }
+
+    function updateUserStats(action) {
+        let stats = JSON.parse(localStorage.getItem('userStats') || '{}');
+        if (!stats.searches) stats.searches = 0;
+        if (!stats.comparisons) stats.comparisons = 0;
+        if (!stats.articlesViewed) stats.articlesViewed = 0;
+
+        if (action === 'searches') {
+            stats.searches += 1;
+        } else if (action === 'comparisons') {
+            stats.comparisons += 1;
+        } else if (action === 'articlesViewed') {
+            stats.articlesViewed += 1;
+        }
+
+        localStorage.setItem('userStats', JSON.stringify(stats));
+    }
+
+    function toggleFavorite(paperId) {
+        // Get current favorites list from localStorage
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+        if (favorites.includes(paperId)) {
+            // Remove from favorites
+            favorites = favorites.filter(id => id !== paperId);
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+
+            // Update button appearance
+            const button = event.target.closest('button');
+            button.querySelector('.favorite-text').textContent = 'Favorite';
+            button.style.backgroundColor = '';
+            button.style.color = '';
+
+            showNotification('Removed from favorites');
+        } else {
+            // Add to favorites
+            favorites.push(paperId);
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+
+            // Update button appearance
+            const button = event.target.closest('button');
+            button.querySelector('.favorite-text').textContent = 'Favorited';
+            button.style.backgroundColor = '#e74c3c';
+            button.style.color = 'white';
+
+            showNotification('Added to favorites');
+        }
+    }
+
+    function showNotification(message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 14px;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
+    }
+</script>
+{% endblock %}

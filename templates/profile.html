@@ -1,0 +1,709 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - StudyLens{% endblock %}
+
+{% block body_class %}profile-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Profile Header -->
+    <section class="profile-header">
+        <h1 class="page-title">User Profile</h1>
+        <p class="page-description">Manage your profile information and preferences</p>
+    </section>
+
+    <!-- Profile Content -->
+    <section class="profile-content">
+        <div class="profile-layout">
+            <!-- Left Sidebar -->
+            <div class="profile-sidebar">
+                <div class="sidebar-menu">
+                    <button class="menu-item active" onclick="showSection('profile')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Profile
+                    </button>
+                    <button class="menu-item" onclick="showSection('favorites')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        Favorite Articles
+                        <span class="badge" id="favoritesCount">0</span>
+                    </button>
+                    <button class="menu-item" onclick="showSection('comparisons')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11H5a2 2 0 0 0-2 2v3c0 1.1.9 2 2 2h4m0-7v7m0-7h10a2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H9m0-7V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Saved Comparisons
+                        <span class="badge" id="comparisonsCount">0</span>
+                    </button>
+                    <button class="menu-item" onclick="showSection('upload')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10,9 9,9 8,9"></polyline>
+                        </svg>
+                        Upload Papers
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="profile-main">
+                <!-- Profile Section -->
+                <div class="content-section active" id="profile-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Edit Profile</h2>
+                        <p class="section-description">Update your personal information</p>
+                    </div>
+                    
+                    <div class="profile-form-container">
+                        <form id="profileForm" class="profile-form">
+                            <div class="form-group">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="institution" class="form-label">Institution</label>
+                                <input type="text" id="institution" name="institution" class="form-input" placeholder="Enter your institution">
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Save Profile</button>
+                                <button type="button" class="btn btn-outline" onclick="resetForm()">Reset</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Profile Info Display -->
+                    <div class="profile-info-display">
+                        <h3 class="info-title">Current Profile</h3>
+                        <div class="info-content">
+                            <div class="info-item">
+                                <span class="info-label">Username:</span>
+                                <span class="info-value" id="displayUsername">Not set</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Institution:</span>
+                                <span class="info-value" id="displayInstitution">Not set</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Statistics -->
+                    <div class="activity-stats">
+                        <h3 class="stats-title">Activity Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-number" id="searchesCount">0</span>
+                                <span class="stat-label">Searches Performed</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="comparisonsCount">0</span>
+                                <span class="stat-label">Studies Compared</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="articlesViewed">0</span>
+                                <span class="stat-label">Articles Viewed</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Statistics -->
+                    <div class="platform-stats">
+                        <h3 class="stats-title">Platform Usage Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-number" id="totalVisits">0</span>
+                                <span class="stat-label">Total Comparison Visits</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="totalDownloads">0</span>
+                                <span class="stat-label">Total Downloads</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Favorites Section -->
+                <div class="content-section" id="favorites-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Favorite Articles</h2>
+                        <p class="section-description">Articles you've marked as favorites</p>
+                    </div>
+                    
+                    <div class="favorites-container" id="favoritesList">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <h3>No favorite articles yet</h3>
+                            <p>Start exploring and add articles to your favorites</p>
+                            <a href="{{ url_for('search') }}" class="btn btn-primary">Browse Articles</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saved Comparisons Section -->
+                <div class="content-section" id="comparisons-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Saved Comparisons</h2>
+                        <p class="section-description">Comparison results you've saved</p>
+                    </div>
+                    
+                    <div class="comparisons-container" id="savedComparisonsList">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <path d="M9 11H5a2 2 0 0 0-2 2v3c0 1.1.9 2 2 2h4m0-7v7m0-7h10a2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H9m0-7V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            <h3>No saved comparisons yet</h3>
+                            <p>Create comparisons and save them for future reference</p>
+                            <a href="{{ url_for('compare') }}" class="btn btn-primary">Start Comparing</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Papers Section -->
+                <div class="content-section" id="upload-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Upload Papers</h2>
+                        <p class="section-description">Request to add papers to the database or report issues with existing papers</p>
+                    </div>
+                    
+                    <div class="upload-form-container">
+                        <form id="uploadForm" class="upload-form">
+                            <div class="form-group">
+                                <label for="requestName" class="form-label">Request Name *</label>
+                                <input type="text" id="requestName" name="requestName" class="form-input" placeholder="Enter a descriptive name for your request" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="institution" class="form-label">Institution *</label>
+                                <input type="text" id="institution" name="institution" class="form-input" placeholder="Your institution name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" id="email" name="email" class="form-input" placeholder="your.email@institution.edu" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="paperInfo" class="form-label">Paper to be Added / URL *</label>
+                                <textarea id="paperInfo" name="paperInfo" class="form-textarea" placeholder="Please provide the paper title, authors, journal, year, and DOI/URL if available" rows="4" required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pdfFile" class="form-label">Optional PDF of the Paper</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="pdfFile" name="pdfFile" class="form-file" accept=".pdf" />
+                                    <label for="pdfFile" class="file-input-label">
+                                        <span class="file-input-button">Choose File</span>
+                                        <span class="file-input-text">No file chosen</span>
+                                    </label>
+                                </div>
+                                <small class="form-help">Upload the PDF file if you have permission to share it</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="changeRequests" class="form-label">Requests for Changes in Existing Papers</label>
+                                <textarea id="changeRequests" name="changeRequests" class="form-textarea" placeholder="If you've noticed any issues with existing papers in our database, please describe them here" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Submit Request</button>
+                                <button type="button" class="btn btn-outline" onclick="resetUploadForm()">Reset Form</button>
+                            </div>
+                            <p class="form-submit-hint">We usually process requests within about a week. Please check back then and click View Database to confirm your papers have been added to the database.</p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load profile data from localStorage
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProfileData();
+        loadActivityStats();
+        loadPlatformStats();
+        updateBadgeCounts();
+        loadFavorites();
+        loadSavedComparisons();
+    });
+
+    // Section switching functionality
+    function showSection(sectionName) {
+        // Hide all sections
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        // Remove active class from all menu items
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Show selected section
+        document.getElementById(sectionName + '-section').classList.add('active');
+        
+        // Add active class to clicked menu item
+        event.target.classList.add('active');
+        
+        // Load data for the section if needed
+        if (sectionName === 'favorites') {
+            loadFavorites();
+        } else if (sectionName === 'comparisons') {
+            loadSavedComparisons();
+        } else if (sectionName === 'upload') {
+            // Load any saved form data
+            loadUploadFormData();
+        }
+    }
+
+    function updateBadgeCounts() {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        const savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+        
+        document.getElementById('favoritesCount').textContent = favorites.length;
+        document.getElementById('comparisonsCount').textContent = savedComparisons.length;
+    }
+
+    function loadProfileData() {
+        const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        
+        // Populate form fields
+        document.getElementById('username').value = profileData.username || '';
+        document.getElementById('institution').value = profileData.institution || '';
+        
+        // Update display
+        updateProfileDisplay(profileData);
+    }
+
+    function updateProfileDisplay(data) {
+        document.getElementById('displayUsername').textContent = data.username || 'Not set';
+        document.getElementById('displayInstitution').textContent = data.institution || 'Not set';
+    }
+
+    function loadActivityStats() {
+        const stats = JSON.parse(localStorage.getItem('userStats') || '{}');
+        document.getElementById('searchesCount').textContent = stats.searches || 0;
+        document.getElementById('comparisonsCount').textContent = stats.comparisons || 0;
+        document.getElementById('articlesViewed').textContent = stats.articlesViewed || 0;
+    }
+
+    function loadPlatformStats() {
+        // Fetch platform statistics from backend
+        fetch('/api/tracking/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('totalVisits').textContent = data.total_visits || 0;
+                document.getElementById('totalDownloads').textContent = data.total_downloads || 0;
+            })
+            .catch(error => {
+                console.error('Error loading platform stats:', error);
+                document.getElementById('totalVisits').textContent = '0';
+                document.getElementById('totalDownloads').textContent = '0';
+            });
+    }
+
+    function loadFavorites() {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        const favoritesList = document.getElementById('favoritesList');
+        
+        if (favorites.length === 0) {
+            favoritesList.innerHTML = `
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <h3>No favorite articles yet</h3>
+                    <p>Start exploring and add articles to your favorites</p>
+                    <a href="{{ url_for('search') }}" class="btn btn-primary">Browse Articles</a>
+                </div>
+            `;
+            return;
+        }
+        
+        // Fetch paper data for favorites
+        fetch('/api/papers')
+            .then(response => response.json())
+            .then(papers => {
+                const favoritePapers = papers.filter(paper => favorites.includes(paper.id));
+                favoritesList.innerHTML = `
+                    <div class="favorites-grid">
+                        ${favoritePapers.map(paper => `
+                            <div class="favorite-card">
+                                <div class="card-header">
+                                    <h4 class="card-title">${paper.title}</h4>
+                                    <button class="remove-btn" onclick="removeFavorite('${paper.id}')" title="Remove from favorites">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M18 6L6 18"></path>
+                                            <path d="M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="card-content">
+                                    <p class="card-authors">${paper.authors.join(', ')}</p>
+                                    <p class="card-journal">${paper.journal}, ${paper.year}</p>
+                                    <p class="card-abstract">${paper.abstract.substring(0, 150)}...</p>
+                                </div>
+                                <div class="card-actions">
+                                    <a href="/article/${paper.id}" class="btn btn-sm btn-primary">View Details</a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Error loading favorites:', error);
+                favoritesList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error loading favorites</h3>
+                        <p>Please try refreshing the page</p>
+                    </div>
+                `;
+            });
+    }
+
+    function loadSavedComparisons() {
+        const savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+        const savedComparisonsList = document.getElementById('savedComparisonsList');
+        
+        if (savedComparisons.length === 0) {
+            savedComparisonsList.innerHTML = `
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M9 11H5a2 2 0 0 0-2 2v3c0 1.1.9 2 2 2h4m0-7v7m0-7h10a2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H9m0-7V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <h3>No saved comparisons yet</h3>
+                    <p>Create comparisons and save them for future reference</p>
+                    <a href="{{ url_for('compare') }}" class="btn btn-primary">Start Comparing</a>
+                </div>
+            `;
+            return;
+        }
+        
+        savedComparisonsList.innerHTML = `
+            <div class="comparisons-grid">
+                ${savedComparisons.map(comparison => `
+                    <div class="comparison-card">
+                        <div class="card-header">
+                            <h4 class="card-title">${comparison.name}</h4>
+                            <button class="delete-btn" onclick="deleteSavedComparison('${comparison.id}')" title="Delete comparison">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="card-content">
+                            <p class="card-date">Saved on ${comparison.date}</p>
+                            <p class="card-papers">${comparison.papers.length} studies compared</p>
+                            <div class="card-studies">
+                                ${comparison.papers.slice(0, 3).map(paper => `
+                                    <span class="study-tag">${paper.title.substring(0, 30)}...</span>
+                                `).join('')}
+                                ${comparison.papers.length > 3 ? `<span class="study-tag more">+${comparison.papers.length - 3} more</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-primary" onclick="loadSavedComparison('${comparison.id}')">View</button>
+                            <button class="btn btn-sm btn-outline" onclick="downloadSavedComparison('${comparison.id}')">Download</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function removeFavorite(paperId) {
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        favorites = favorites.filter(id => id !== paperId);
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        loadFavorites();
+        updateBadgeCounts();
+        showNotification('Removed from favorites');
+    }
+
+    function loadSavedComparison(comparisonId) {
+        const savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+        const comparison = savedComparisons.find(c => c.id === comparisonId);
+        
+        if (comparison) {
+            const paperIds = comparison.papers.map(paper => paper.id).join(',');
+            window.location.href = `/compare?ids=${paperIds}`;
+        }
+    }
+
+    function downloadSavedComparison(comparisonId) {
+        const savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+        const comparison = savedComparisons.find(c => c.id === comparisonId);
+        
+        if (comparison) {
+            const csvContent = generateCSVFromSaved(comparison);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${comparison.name.replace(/\s+/g, '_')}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showNotification('Comparison downloaded successfully');
+        }
+    }
+
+    function deleteSavedComparison(comparisonId) {
+        if (confirm('Are you sure you want to delete this comparison?')) {
+            let savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+            savedComparisons = savedComparisons.filter(c => c.id !== comparisonId);
+            localStorage.setItem('savedComparisons', JSON.stringify(savedComparisons));
+            loadSavedComparisons();
+            updateBadgeCounts();
+            showNotification('Comparison deleted successfully');
+        }
+    }
+
+    function generateCSVFromSaved(comparison) {
+        const { papers } = comparison;
+        const features = [
+            'Authors', 'Title', 'Journal', 'Year', 'Citation', 'Abstract',
+            'Sample Size', 'Country / Region', 'Recruitment Source', 'Demographics', 'Incentive',
+            'Treatment / Independent Variable(s)', 'Survey Measures (Treatment Variables)',
+            'Outcome / Dependent Variable(s)', 'Survey Measures (Outcome Variables)', 'Analysis (Estimating Equation)',
+            'Main Effects', 'Moderators', 'Moderation Results',
+            'AI Context Summary', 'Temporal Context'
+        ];
+        
+        // Create header row
+        let csv = 'Feature,' + papers.map((paper, index) => `Study ${index + 1}`).join(',') + '\n';
+        
+        // Add data rows
+        features.forEach(feature => {
+            const row = [feature];
+            papers.forEach(paper => {
+                let value = '';
+                switch(feature) {
+                    case 'Authors':
+                        value = paper.authors.join(', ');
+                        break;
+                    case 'Title':
+                        value = paper.title;
+                        break;
+                    case 'Journal':
+                        value = paper.journal;
+                        break;
+                    case 'Year':
+                        value = paper.year;
+                        break;
+                    case 'Citation':
+                        value = paper.citation || '';
+                        break;
+                    case 'Abstract':
+                        value = paper.abstract;
+                        break;
+                    case 'Sample Size':
+                        value = paper.sample_size ? paper.sample_size.toLocaleString() : '';
+                        break;
+                    case 'Country / Region':
+                        value = paper.extracted_features.country_region || '';
+                        break;
+                    case 'Recruitment Source':
+                        value = paper.extracted_features.recruitment_source || '';
+                        break;
+                    case 'Demographics':
+                        value = paper.extracted_features.demographics || '';
+                        break;
+                    case 'Incentive':
+                        value = paper.extracted_features.incentive || '';
+                        break;
+                    case 'Treatment / Independent Variable(s)':
+                        value = paper.extracted_features.independent_variables || '';
+                        break;
+                    case 'Survey Measures (Treatment Variables)':
+                        value = paper.extracted_features.survey_questions || '';
+                        break;
+                    case 'Outcome / Dependent Variable(s)':
+                        value = paper.extracted_features.dependent_variables || '';
+                        break;
+                    case 'Survey Measures (Outcome Variables)':
+                        value = paper.extracted_features.survey_questions || '';
+                        break;
+                    case 'Analysis (Estimating Equation)':
+                        value = paper.extracted_features.analysis_equations || '';
+                        break;
+                    case 'Main Effects':
+                        value = paper.extracted_features.main_effects || '';
+                        break;
+                    case 'Moderators':
+                        value = paper.extracted_features.moderators || '';
+                        break;
+                    case 'Moderation Results':
+                        value = paper.extracted_features.moderation_results || '';
+                        break;
+                    case 'AI Context Summary':
+                        value = paper.extracted_features.ai_context_summary || '';
+                        break;
+                    case 'Temporal Context':
+                        value = paper.extracted_features.temporal_context || '';
+                        break;
+                }
+                // Escape commas and quotes in CSV
+                value = value.replace(/"/g, '""');
+                if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                    value = '"' + value + '"';
+                }
+                row.push(value);
+            });
+            csv += row.join(',') + '\n';
+        });
+        
+        return csv;
+    }
+
+    // Handle form submission
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            username: document.getElementById('username').value,
+            institution: document.getElementById('institution').value
+        };
+        
+        // Save to localStorage
+        localStorage.setItem('userProfile', JSON.stringify(formData));
+        
+        // Update display
+        updateProfileDisplay(formData);
+        
+        // Show success message
+        showNotification('Profile saved successfully!');
+    });
+
+    function resetForm() {
+        document.getElementById('profileForm').reset();
+        loadProfileData();
+    }
+
+    function loadUploadFormData() {
+        // Load any previously saved form data
+        const savedData = JSON.parse(localStorage.getItem('uploadFormData') || '{}');
+        
+        if (savedData.requestName) document.getElementById('requestName').value = savedData.requestName;
+        if (savedData.institution) document.getElementById('institution').value = savedData.institution;
+        if (savedData.email) document.getElementById('email').value = savedData.email;
+        if (savedData.paperInfo) document.getElementById('paperInfo').value = savedData.paperInfo;
+        if (savedData.changeRequests) document.getElementById('changeRequests').value = savedData.changeRequests;
+    }
+
+    function resetUploadForm() {
+        document.getElementById('uploadForm').reset();
+        localStorage.removeItem('uploadFormData');
+        updateFileInputDisplay();
+        showNotification('Upload form reset');
+    }
+
+    function updateFileInputDisplay() {
+        const fileInput = document.getElementById('pdfFile');
+        const fileText = document.querySelector('.file-input-text');
+        if (fileInput && fileText) {
+            if (fileInput.files && fileInput.files.length > 0) {
+                fileText.textContent = fileInput.files[0].name;
+            } else {
+                fileText.textContent = 'No file chosen';
+            }
+        }
+    }
+
+    // Update file input display when file is selected
+    document.getElementById('pdfFile').addEventListener('change', function() {
+        updateFileInputDisplay();
+    });
+
+    // Handle upload form submission
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('requestName', document.getElementById('requestName').value);
+        formData.append('institution', document.getElementById('institution').value);
+        formData.append('email', document.getElementById('email').value);
+        formData.append('paperInfo', document.getElementById('paperInfo').value);
+        formData.append('changeRequests', document.getElementById('changeRequests').value);
+        
+        const pdfFile = document.getElementById('pdfFile').files[0];
+        if (pdfFile) {
+            formData.append('pdfFile', pdfFile);
+        }
+        
+        // Save form data to localStorage for recovery
+        const formDataObj = {
+            requestName: document.getElementById('requestName').value,
+            institution: document.getElementById('institution').value,
+            email: document.getElementById('email').value,
+            paperInfo: document.getElementById('paperInfo').value,
+            changeRequests: document.getElementById('changeRequests').value
+        };
+        localStorage.setItem('uploadFormData', JSON.stringify(formDataObj));
+        
+        // Submit to backend
+        fetch('/api/upload-request', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Upload request submitted successfully! We will review it soon.');
+                document.getElementById('uploadForm').reset();
+                localStorage.removeItem('uploadFormData');
+            } else {
+                showNotification('Error submitting request: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error submitting request. Please try again.');
+        });
+    });
+
+    function showNotification(message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 14px;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
+    }
+</script>
+{% endblock %}

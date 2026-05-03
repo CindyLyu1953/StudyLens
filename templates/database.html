@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Our Database - StudyLens{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/database.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="database-header">
+        <h1 class="page-title">Our Database</h1>
+        <p class="page-description">Explore the complete collection of research studies in our database</p>
+    </section>
+
+    <section class="database-stats">
+        <div class="stat-card">
+            <div class="stat-number">{{ paper_count }}</div>
+            <div class="stat-label">Total Papers</div>
+        </div>
+    </section>
+
+    <section class="database-info">
+        <h2 class="section-title">About This Database</h2>
+        <div class="info-content">
+            <p>This research database was built through a structured, multi-phase process that integrates AI-assisted feature extraction with clear information design and systematic data organization. Central to the development workflow was the use of large language model (LLM) APIs to automatically extract structured metadata from academic papers. These outputs were reviewed, refined, and consolidated into a standardized dataset that the platform draws from dynamically.</p>
+            <p>The project began with a high-fidelity prototype that defined user flows, information hierarchy, and interface layout. Guided by this foundation, we developed the platform as a Flask-based web application with dedicated modules for search, browsing, and cross-study comparison. The front-end interface supports keyword search, filtering, detailed article views, and a flexible comparison feature that allows users to examine up to five studies side-by-side.</p>
+        </div>
+    </section>
+
+    <section class="papers-list">
+        <h2 class="section-title">All Papers in Database</h2>
+        <div class="papers-grid">
+            {% for paper in papers %}
+            <div class="paper-card">
+                <a href="{{ url_for('article', paper_id=paper.id) }}" class="paper-link">
+                    <div class="paper-title">{{ paper.title }}</div>
+                    <div class="paper-meta">
+                        <span class="paper-authors">{{ paper.authors|join(', ') if paper.authors else 'Unknown Authors' }}</span>
+                        <span class="paper-year">{{ paper.year }}</span>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+

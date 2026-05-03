@@ -1,0 +1,552 @@
+{% import 'macros/metric_tooltips.html' as metric_tt %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article Details - StudyLens</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/article.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1>StudyLens</h1>
+                <span class="tagline">Deactivation Studies</span>
+            </div>
+            <nav class="nav">
+                <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+                <a href="{{ url_for('search') }}" class="nav-link">Search</a>
+                <a href="{{ url_for('compare') }}" class="nav-link">Compare</a>
+                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Article Header Information -->
+            <section class="article-header">
+                <div class="article-meta">
+                    <div class="article-journal">{{ paper.journal }}</div>
+                    <div class="article-year">{{ paper.year }}</div>
+                    <!-- <div class="article-citations">Citations: {{ paper.citations }}</div> -->
+                </div>
+
+                <h1 class="article-title">{{ paper.title }}</h1>
+
+                <div class="article-authors">
+                    <strong>Authors:</strong> {{ paper.authors|join(', ') }}
+                </div>
+
+                    <div class="article-actions">
+                        <button class="btn btn-outline" onclick="addToCompare()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11H5a2 2 0 0 0-2 2v3c0 1.1.9 2 2 2h4m0-7v7m0-7h10a2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H9m0-7V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Add to Compare
+                        </button>
+                        <button class="btn btn-outline" onclick="exportArticle()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7,10 12,15 17,10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export
+                        </button>
+                    </div>
+            </section>
+
+            <!-- Article Content -->
+            <section class="article-content">
+                <div class="content-grid">
+                    <!-- Main Content on Left -->
+                    <div class="content-main">
+                        <!-- Abstract -->
+                        <div class="content-section">
+                            <h2 class="section-title">Abstract</h2>
+                            {% set abstract_text = paper.abstract or '' %}
+                            {% set abstract_verbatim = paper.abstract_verbatim or '' %}
+                            {% set has_abstract_verbatim = abstract_verbatim and abstract_verbatim != 'NOT SPECIFIED' %}
+                            <div class="feature-content">
+                                <div class="feature-summary">
+                                    <p>{{ abstract_text|highlight_keywords('abstract') }}</p>
+                                </div>
+                                {% if has_abstract_verbatim %}
+                                <div class="feature-full-text hidden" id="abstract-verbatim-full">
+                                    <p>{{ abstract_verbatim|highlight_keywords('abstract') }}</p>
+                                </div>
+                                {% endif %}
+                                {% if has_abstract_verbatim %}
+                                <div class="feature-actions">
+                                    <button type="button" class="btn btn-outline btn-sm full-text-trigger" data-full-text-id="abstract-verbatim-full" data-feature-label="Abstract Verbatim" data-study-title="{{ paper.title|e }}" data-study-index="1">
+                                        <span class="btn-text">View Verbatim Text</span>
+                                    </button>
+                                </div>
+                                {% endif %}
+                                {% if paper.extracted_features.ai_context_summary %}
+                                <section class="article-section">
+                                    <h2>AI Context Summary</h2>
+                                    <p>{{ paper.extracted_features.ai_context_summary }}</p>
+                                </section>
+                                {% endif %}
+                            </div>
+                        </div>
+
+
+                        <!-- Extracted Features -->
+                        <div class="content-section">
+                            <div class="features-container">
+                                {% set feature_order = [
+                                  'sample_size',
+                                  'country_region',
+                                  'recruitment_source',
+                                  'demographics',
+                                  'incentive',
+                                  'independent_variables',
+                                  'dependent_variables',
+                                  'survey_questions',
+                                  'analysis_equations',
+                                  'main_effects',
+                                  'moderators',
+                                  'moderation_results',
+                                  'ai_context_summary',
+                                  'temporal_context',
+                                  'gdp_per_capita_usd',
+                                  'gini_coefficient',
+                                  'income_group',
+                                  'study_language',
+                                  'platform_language_optimization',
+                                  'traditional_media_strength',
+                                  'electoral_proximity',
+
+                                  'democracy',
+                                  'press_freedom',
+                                  'internet_freedom',
+                                  'internet_penetration',
+                                  'governance',
+                                  'polarization',
+
+                                  'population_million',
+                                  'internet_users_million',
+                                  'social_media_users_million',
+                                  'youtube_users_million',
+                                  'facebook_users_million',
+                                  'instagram_users_million',
+                                  'x_users_million',
+                                  'tiktok_users_million',
+                                  'linkedin_users_million',
+                                  'messenger_users_million',
+                                  'snapchat_users_million',
+                                  'pinterest_users_million'
+                                ] %}
+                                {% set feature_labels =
+                                { 'sample_size': 'Sample Size',
+                                'country_region': 'Country / Region',
+                                'recruitment_source': 'Recruitment Source',
+                                'demographics': 'Demographics',
+                                'incentive': 'Incentive',
+                                'independent_variables': 'Treatment / Independent Variable(s)',
+                                'dependent_variables': 'Outcome / Dependent Variable(s)',
+                                'survey_questions': 'Survey Questions',
+                                'analysis_equations': 'Analysis Equations',
+                                'main_effects': 'Main Effects',
+                                'moderators': 'Moderators',
+                                'moderation_results': 'Moderation Results',
+                                'ai_context_summary': 'AI Context Summary',
+                                'temporal_context': 'Temporal Context',
+                                'gdp_per_capita_usd': 'GDP Per Capita (USD)',
+                                'gini_coefficient': 'Gini Coefficient',
+                                'income_group': 'World Bank Income Group',
+                                'study_language': 'Study Language',
+                                'platform_language_optimization': 'Platform Language / Locale Optimization',
+                                'traditional_media_strength': 'Traditional Media Strength',
+                                'electoral_proximity': 'Electoral Proximity',
+                                'democracy': 'Liberal Democracy Index',
+                                'press_freedom': 'Press Freedom Index',
+                                'internet_freedom': 'Internet Freedom Score',
+                                'internet_penetration': 'Internet Penetration',
+                                'governance': 'Political Stability Score',
+                                'polarization': 'Deliberative Democracy Index',
+                                'population_million': 'Population (Million)',
+                                'internet_users_million': 'Internet Users (Million)',
+                                'social_media_users_million': 'Social Media Users (Million)',
+                                'youtube_users_million': 'YouTube Users (Million)',
+                                'facebook_users_million': 'Facebook Users (Million)',
+                                'instagram_users_million': 'Instagram Users (Million)',
+                                'x_users_million': 'X Users (Million)',
+                                'tiktok_users_million': 'TikTok Users (Million)',
+                                'linkedin_users_million': 'LinkedIn Users (Million)',
+                                'messenger_users_million': 'Messenger Users (Million)',
+                                'snapchat_users_million': 'Snapchat Users (Million)',
+                                'pinterest_users_million': 'Pinterest Users (Million)'
+                                }%}
+                                {% for feature_name in feature_order %}
+                                    {% set feature_value = paper.extracted_features.get(feature_name, '') %}
+                                    {% set fv = (feature_value|string|trim) if feature_value is not none else '' %}
+                                    {% set fv_lower = fv|lower %}
+                                    {% set fv_is_placeholder = fv_lower in ['', 'not specified', 'none', 'nan', 'null'] %}
+                                    {% if fv and not fv_is_placeholder %}
+                                        {% set feature_label = feature_labels.get(feature_name, feature_name.replace('_', ' ').title()) %}
+                                        {% set verbatim_key = feature_name + '_verbatim' %}
+                                        {% set verbatim_value = paper.extracted_features.get(verbatim_key, '') %}
+                                        {% set vv = (verbatim_value|string|trim) if verbatim_value is not none else '' %}
+                                        {% set vv_lower = vv|lower %}
+                                        {% set has_verbatim = vv and vv_lower not in ['not specified', 'none', 'nan', 'null'] %}
+                                        {% set summary_word_count = fv|word_count %}
+                                        {% set needs_truncation = summary_word_count > 30 %}
+                                        {% set display_summary = needs_truncation and fv|truncate_words(30) or fv %}
+                                        {% set button_label = has_verbatim and 'View Verbatim Text' or 'View Full Text' %}
+                                        <div class="feature-item">
+                                            <h3 class="feature-title">
+                                                <span class="feature-title-label">{{ feature_label }}</span>
+                                                {{ metric_tt.metric_source_tooltip(feature_name) }}
+                                            </h3>
+                                            <div class="feature-content">
+                                                <div class="feature-summary">
+                                                {% set v = display_summary|string %}
+                                                {% set is_platform_metric = feature_name in [
+                                                    'internet_users_million',
+                                                    'social_media_users_million',
+                                                    'youtube_users_million',
+                                                    'facebook_users_million',
+                                                    'instagram_users_million',
+                                                    'x_users_million',
+                                                    'tiktok_users_million',
+                                                    'linkedin_users_million',
+                                                    'messenger_users_million',
+                                                    'snapchat_users_million',
+                                                    'pinterest_users_million'
+                                                ] %}
+
+                                                {% if needs_truncation %}
+                                                    <div class="summary-preview">
+                                                        <div class="summary-text">{%- if is_platform_metric and '%' in v -%}{% set parts = v.rsplit(' ', 1) %}{% if parts|length == 2 %}<div class="metric-breakdown"><strong>{{ feature_label }}:</strong> {{ parts[0] }}<br><strong>% Of Platform Users Based On Population:</strong> {{ parts[1] }}</div>{% else %}{{ v|trim|highlight_keywords(feature_name) }}{% endif %}{%- else -%}{{ v|trim|highlight_keywords(feature_name) }}{%- endif -%}</div>
+                                                        {% if not is_platform_metric %}
+                                                        <template class="inline-expand-highlight-full">{{ fv|highlight_keywords(feature_name) }}</template>
+                                                        <template class="inline-expand-highlight-trunc">{{ display_summary|highlight_keywords(feature_name) }}</template>
+                                                        {% endif %}
+
+                                                        <button type="button"
+                                                            class="inline-expand-toggle"
+                                                            data-full-text="{{ fv|e }}"
+                                                            data-truncated-text="{{ display_summary|e }}"
+                                                            aria-expanded="false"
+                                                            aria-label="View full text">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <polyline points="6,9 12,15 18,9"></polyline>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                {% else %}
+                                                    {% if is_platform_metric and '%' in v %}
+                                                        {% set parts = v.rsplit(' ', 1) %}
+                                                        {% if parts|length == 2 %}
+                                                            <div class="metric-breakdown">
+                                                                <strong>{{ feature_label }}:</strong> {{ parts[0] }}<br>
+                                                                <strong>% Of Platform Users Based On Population:</strong> {{ parts[1] }}
+                                                            </div>
+                                                        {% else %}
+                                                            <p>{{ v|highlight_keywords(feature_name) }}</p>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <p>{{ v|highlight_keywords(feature_name) }}</p>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+
+                                                {% if has_verbatim %}
+                                                <div class="feature-full-text hidden" id="{{ feature_name }}-verbatim-full">
+                                                    <p>{{ vv|highlight_keywords(feature_name) }}</p>
+                                                </div>
+                                                <div class="feature-actions">
+                                                    <button type="button" class="btn btn-outline btn-sm full-text-trigger" data-full-text-id="{{ feature_name }}-verbatim-full" data-feature-label="{{ feature_label }} Verbatim" data-study-title="{{ paper.title|e }}" data-study-index="1">
+                                                        <span class="btn-text">View Verbatim Text</span>
+                                                    </button>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar on Right -->
+                    <div class="content-sidebar">
+                        <div class="sidebar-section">
+                            <h3 class="sidebar-title">Study Information</h3>
+                            <div class="sidebar-content">
+                                <div class="info-item">
+                                    <span class="info-label">Journal:</span>
+                                    <span class="info-value">{{ paper.journal }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Year:</span>
+                                    <span class="info-value">{{ paper.year }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Countries:</span>
+                                    <span class="info-value">{{ paper.countries|join(', ') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="fullTextModal" class="full-text-modal hidden" aria-hidden="true">
+                <div class="modal-backdrop" role="presentation"></div>
+                <div class="modal-dialog" role="dialog" aria-modal="true">
+                    <button type="button" class="modal-close" onclick="closeFullTextModal()" aria-label="Close full text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="modal-header">
+                        <h3 class="modal-title" id="modalFeatureTitle">Full Text</h3>
+                        <p class="modal-subtitle" id="modalStudyTitle"></p>
+                    </div>
+                    <div class="modal-body" id="modalBody"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Us</h4>
+                    <p>StudyLens was built to enable users to compare and analyze research studies, focusing on methodology, measures, and context. By highlighting design differences, we aim to help users draw more informed conclusions from existing research.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Our Database</h4>
+                    <a href="{{ url_for('database') }}">View Database</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 StudyLens. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const modalElements = {
+            container: null,
+            title: null,
+            subtitle: null,
+            body: null
+        };
+
+        // Track article view on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            modalElements.container = document.getElementById('fullTextModal');
+            modalElements.title = document.getElementById('modalFeatureTitle');
+            modalElements.subtitle = document.getElementById('modalStudyTitle');
+            modalElements.body = document.getElementById('modalBody');
+
+            const modalBackdrop = modalElements.container?.querySelector('.modal-backdrop');
+            if (modalBackdrop) {
+                modalBackdrop.addEventListener('click', closeFullTextModal);
+            }
+
+            document.querySelectorAll('.full-text-trigger').forEach(button => {
+                button.addEventListener('click', event => {
+                    event.preventDefault();
+                    openFullTextFromButton(button);
+                });
+            });
+
+            setupInlineExpanders();
+
+            document.addEventListener('keydown', handleModalKeydown);
+
+            updateUserStats('articlesViewed');
+
+            // Check content length and hide unnecessary View Full buttons
+            setTimeout(checkContentLength, 100);
+        });
+
+        function updateUserStats(action) {
+            let stats = JSON.parse(localStorage.getItem('userStats') || '{}');
+            if (!stats.searches) stats.searches = 0;
+            if (!stats.comparisons) stats.comparisons = 0;
+            if (!stats.articlesViewed) stats.articlesViewed = 0;
+
+            if (action === 'searches') {
+                stats.searches += 1;
+            } else if (action === 'comparisons') {
+                stats.comparisons += 1;
+            } else if (action === 'articlesViewed') {
+                stats.articlesViewed += 1;
+            }
+
+            localStorage.setItem('userStats', JSON.stringify(stats));
+        }
+
+        function openFullTextFromButton(button) {
+            if (!button) {
+                return;
+            }
+
+            const targetId =
+                button.dataset.fullTextId || button.getAttribute('data-full-text-id');
+            const featureLabel = button.dataset.featureLabel || 'Full Text';
+            const studyLabel = button.dataset.studyTitle || '';
+
+            const fullTextElement = targetId ? document.getElementById(targetId) : null;
+            const htmlContent = fullTextElement ? fullTextElement.innerHTML.trim() : '';
+
+            if (!fullTextElement || !htmlContent) {
+                return;
+            }
+
+            showFullTextModal(featureLabel, studyLabel, htmlContent);
+        }
+
+        function showFullTextModal(featureLabel, studyLabel, htmlContent) {
+            if (!modalElements.container) {
+                return;
+            }
+
+            modalElements.title.textContent = featureLabel || 'Full Text';
+
+            if (studyLabel) {
+                modalElements.subtitle.textContent = studyLabel;
+                modalElements.subtitle.style.display = 'block';
+            } else {
+                modalElements.subtitle.textContent = '';
+                modalElements.subtitle.style.display = 'none';
+            }
+
+            modalElements.body.innerHTML = htmlContent;
+            modalElements.container.classList.remove('hidden');
+            modalElements.container.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeFullTextModal() {
+            if (!modalElements.container) {
+                return;
+            }
+
+            modalElements.container.classList.add('hidden');
+            modalElements.container.setAttribute('aria-hidden', 'true');
+            modalElements.body.innerHTML = '';
+            document.body.classList.remove('modal-open');
+        }
+
+        function handleModalKeydown(event) {
+            if (event.key === 'Escape' && modalElements.container && !modalElements.container.classList.contains('hidden')) {
+                closeFullTextModal();
+            }
+        }
+
+        function setupInlineExpanders() {
+            document.querySelectorAll('.inline-expand-toggle').forEach(button => {
+                button.addEventListener('click', event => {
+                    event.preventDefault();
+                    toggleInlineExpansion(button);
+                });
+            });
+        }
+
+        function toggleInlineExpansion(button) {
+            if (!button) {
+                return;
+            }
+
+            const fullText = button.dataset.fullText;
+            const truncatedText = button.dataset.truncatedText;
+            const previewSpan = button.closest('.summary-preview');
+            const textSpan = previewSpan ? previewSpan.querySelector('.summary-text') : null;
+
+            if (!textSpan || !fullText || !truncatedText) {
+                return;
+            }
+
+            const tmplFull = previewSpan.querySelector('template.inline-expand-highlight-full');
+            const tmplTrunc = previewSpan.querySelector('template.inline-expand-highlight-trunc');
+            let useHtml = false;
+            let fullHtmlParsed;
+            let truncatedHtmlParsed;
+            if (tmplFull && tmplTrunc) {
+                fullHtmlParsed = tmplFull.innerHTML;
+                truncatedHtmlParsed = tmplTrunc.innerHTML;
+                useHtml = true;
+            } else {
+                const fullHtmlRaw = button.getAttribute('data-full-html');
+                const truncatedHtmlRaw = button.getAttribute('data-truncated-html');
+                if (fullHtmlRaw && truncatedHtmlRaw) {
+                    try {
+                        fullHtmlParsed = JSON.parse(fullHtmlRaw);
+                        truncatedHtmlParsed = JSON.parse(truncatedHtmlRaw);
+                        useHtml = true;
+                    } catch (err) {
+                        useHtml = false;
+                    }
+                }
+            }
+
+            const isExpanded = button.getAttribute('aria-expanded') === 'true';
+            if (isExpanded) {
+                if (useHtml) {
+                    textSpan.innerHTML = truncatedHtmlParsed;
+                } else {
+                    textSpan.textContent = truncatedText;
+                }
+                button.setAttribute('aria-expanded', 'false');
+                button.classList.remove('expanded');
+                button.setAttribute('aria-label', 'View full text');
+                button.setAttribute('title', 'View full text');
+            } else {
+                if (useHtml) {
+                    textSpan.innerHTML = fullHtmlParsed;
+                } else {
+                    textSpan.textContent = fullText;
+                }
+                button.setAttribute('aria-expanded', 'true');
+                button.classList.add('expanded');
+                button.setAttribute('aria-label', 'Hide full text');
+                button.setAttribute('title', 'Hide full text');
+            }
+        }
+
+        function checkContentLength() {
+             // Hide View Full buttons when verbatim content is same as condensed content
+             // This handles cases where the database may have identical condensed and verbatim versions
+            document.querySelectorAll('.feature-content').forEach(content => {
+                const summary = content.querySelector('.feature-summary');
+                const summaryText = summary ? summary.textContent.trim() : '';
+
+                content.querySelectorAll('.full-text-trigger').forEach(button => {
+                    const targetId =
+                        button.dataset.fullTextId || button.getAttribute('data-full-text-id');
+                    const fullTextElement = targetId ? document.getElementById(targetId) : null;
+                    const fullTextContent = fullTextElement ? fullTextElement.textContent.trim() : '';
+
+                    if (summaryText && fullTextContent && summaryText === fullTextContent) {
+                        button.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function addToCompare() {
+            console.log('Adding to compare');
+        }
+
+        function toggleFavorite() {
+            console.log('Toggling favorite');
+        }
+
+        function exportArticle() {
+            console.log('Exporting article');
+        }
+    </script>
+</body>
+</html>
