@@ -1,37 +1,11 @@
 # StudyLens — User Guide
 
-StudyLens helps you work with **social media effects** research: explore studies in the database, compare them side by side, and—when you have your own paper—**turn PDFs into structured tables** (design, measures, findings, context) using the included extraction notebooks.
+StudyLens helps you work with **social media effects** research: explore studies in the database, compare them side by side, and contribute new papers for review. Step-by-step guidance for extracting structured fields from your own PDFs will be added here once that workflow is published in this repository.
 
 ---
 
-## Get structured information from your PDF (fastest path)
+## Get structured information from your PDF
 
-The website **does not** extract fields from your PDF automatically. To go **from PDF → spreadsheet-style features on your computer**, use the Jupyter notebooks in this repository with a **Google Gemini API key**.
-
-### 1. Prerequisites
-
-- [Python 3](https://www.python.org/downloads/) and [Jupyter](https://jupyter.org/install) (or Google Colab)
-- Your paper as a **PDF** (and any **appendix PDFs**, if the study uses them)
-
-### 2. API key
-
-1. Create a key with Google’s Gemini API: [Gemini API documentation](https://ai.google.dev/gemini-api/docs).
-2. Set it as an environment variable **`GOOGLE_API_KEY`**, or paste it into the notebook where indicated (see the first setup cells).
-
-**Do not commit your API key** to git or share it publicly.
-
-### 3. Run the extraction notebook
-
-1. Open **`Feature_Exraction/Non_Contextual_Features.ipynb`** in Jupyter (or upload it to Colab).
-2. Install dependencies if prompted (the notebook installs `google-generativeai`; other imports are standard library unless your environment is minimal).
-3. **Run all cells**. When asked, select your **main PDF**(s). If a paper has appendices, you can upload those when prompted.
-4. When it finishes, you get a **CSV file** of extracted study features (condensed and verbatim fields where applicable).
-
-### 4. Optional: contextual metadata
-
-For extra **context** columns (e.g. country, year window, socio-political framing), run **`Feature_Exraction/Contextual_Metadata.ipynb`** with the same API setup. It will ask for inputs such as country and year range, then produce another CSV. You can **merge** that output with the first CSV for a fuller row set.
-
-More detail on prompts and flow: **`Feature_Exraction/Feature_Extraction.md`**.
 
 ---
 
@@ -46,7 +20,7 @@ The web app lets you **search**, **open article details**, and **compare** studi
 
 ### Search and filters
 
-- Enter keywords (topic, author, journal, etc.).
+- Enter keywords (topic, author, journal, US, high income, etc.).
 - Narrow results with year, journal, and country/region filters where available.
 
 ### Article pages
@@ -57,8 +31,9 @@ The web app lets you **search**, **open article details**, and **compare** studi
 ### Compare studies
 
 - Add papers to your comparison list from search (up to **five** at a time).
-- Export a comparison as **CSV** if you need it offline.
-- You can **save** comparisons in the browser (stored locally on your device).
+- Click **Create Your Own Comparison** to enter custom mode. You can turn **44 indicators** on or off across the bibliographic, design, measurement, findings, context, and platform-usage groupings—so you build a **personalized** table with only the rows you need, then read or **export** it. This is often more practical than scrolling an all-fields view. Use **Back to standard view** when you want the full layout again.
+- **Export** your table as **CSV** with **Download Comparison**.
+- **Save** comparisons in the browser (stored locally on your device) when you want to return to the same setup.
 
 ### Profile
 
@@ -69,39 +44,43 @@ The web app lets you **search**, **open article details**, and **compare** studi
 
 ## Ask to add your paper to the shared database
 
-If you want **your study included** in the public StudyLens catalog (not just a CSV on your machine):
+If you want **your interested studies included** in the public StudyLens catalog (not just a CSV on your machine):
 
-1. Open **Profile** → **Upload Papers**.
-2. Fill in your contact details and **bibliographic information** (title, authors, DOI, etc.).
+1. Open **Profile** -> **Upload Papers**.
+2. Fill in your contact details and the URL of the paper.
 3. **Attach the PDF** if you are allowed to share it—this helps reviewers process your request.
-4. Submit and track status under **My Requests**.
+4. Submit and check back within one week to confirm your papers have been added to the database.
 
-Requests are reviewed before data goes live. Timing depends on whoever runs that instance.
+Requests are reviewed before data goes live. We usually process requests within about a week.
 
 ---
 
 ## What kind of information you get
 
-Extracted and displayed fields are grouped roughly as:
+On the **Compare** page, the table and **Create Your Own Comparison** indicator list use the same **six sections** and **44 rows** as in the app:
 
-- **Basics:** title, authors, journal, year, citation, abstract  
-- **Design & sample:** sample size, region, recruitment, demographics, incentives  
-- **Measurement & analysis:** treatments, outcomes, survey items, estimation approach  
-- **Findings:** main effects, moderators, interactions  
-- **Context:** social, political, platform, and time-related background  
+- **Bibliographic:** Authors, Title, Journal, Year, Citation, Abstract  
+- **Research Design & Sample:** Sample Size, Country / Region, Recruitment Source, Demographics, Incentive  
+- **Measurement & Analysis:** Treatment / Independent Variable(s), Outcome / Dependent Variable(s), Survey Questions, Analysis Equations  
+- **Findings:** Main Effects, Moderators, Moderation Results  
+- **Context:** AI Context Summary, Temporal Context, GDP Per Capita (USD), Gini Coefficient, World Bank Income Group, Study Language, Platform Language / Locale Optimization, Traditional Media Strength, Electoral Proximity, Liberal Democracy Index, Press Freedom Index, Internet Freedom Score, Internet Penetration, Political Stability Score  
+- **Internet And Social Media Usage:** Population (Million), Internet Users (Million), Social Media Users (Million), YouTube Users (Million), Facebook Users (Million), Instagram Users (Million), X Users (Million), TikTok Users (Million), LinkedIn Users (Million), Messenger Users (Million), Snapchat Users (Million), Pinterest Users (Million)  
 
-Many columns have both a **short** version and a **verbatim** excerpt when the dataset provides both.
+Many indicators include both a **condensed** summary and a **verbatim** excerpt from the source when the dataset provides both (AI Context Summary is condensed-only in the comparison view).
 
 ---
 
 ## Run the website on your computer (optional)
 
+Set **`GROQ_API_KEY`** before starting the server: the app configures a **Groq** client at startup (`app.py`) so that backend code can send prompts to **Groq’s hosted language models** when those endpoints run (without a key, that client is created without credentials and any Groq-backed call can fail).
+
 ```bash
 pip install -r requirements.txt
+export GROQ_API_KEY="your-groq-api-key"
 python app.py
 ```
 
-Then open the address shown in the terminal (often port **5001**). You still need the **PDF extraction notebooks** above to generate structured rows from new PDFs.
+Then open the address shown in the terminal (often port **5001**).
 
 ---
 
@@ -111,9 +90,3 @@ Then open the address shown in the terminal (often port **5001**). You still nee
 - **Upload requests** and usage tracking on a shared server are stored **on that server** according to the operator’s policy.
 - Keep **API keys** on your machine or secret manager only.
 
----
-
-## Getting help
-
-- For **PDF extraction** issues, check `Feature_Exraction/Feature_Extraction.md` and your API quota or PDF permissions.
-- For **database content** or **upload requests**, use the request form in the app or contact whoever operates your StudyLens instance.
