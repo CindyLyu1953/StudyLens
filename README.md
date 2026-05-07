@@ -73,20 +73,6 @@ Many indicators include both a **condensed** summary and a **verbatim** excerpt 
 
 ---
 
-## Run the website on your computer (optional)
-
-Set **`GROQ_API_KEY`** before starting the server: the app configures a **Groq** client at startup (`app.py`) so that backend code can send prompts to **Groq’s hosted language models** when those endpoints run (without a key, that client is created without credentials and any Groq-backed call can fail).
-
-```bash
-pip install -r requirements.txt
-export GROQ_API_KEY="your-groq-api-key"
-python app.py
-```
-
-Then open the address shown in the terminal (often port **5001**).
-
----
-
 ## Privacy
 
 - **Profile, favorites, and saved comparisons** in the browser are stored **locally** on your device unless your team has customized the app.
