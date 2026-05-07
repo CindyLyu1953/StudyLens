@@ -152,7 +152,7 @@ def extract_url(value):
 
 
 def highlight_terms_html(text, feature_key=None):
-    """Escape HTML; **bold** segments from CSV render as <strong>.
+    """Escape HTML; ``!!bold!!`` segments from CSV render as <strong>.
 
     feature_key is ignored (kept so templates can keep using
     ``|highlight_keywords(feature_key)``).
@@ -163,8 +163,8 @@ def highlight_terms_html(text, feature_key=None):
     def esc_chunk(plain: str) -> str:
         return escape(plain)
 
-    if "**" in s:
-        parts = s.split("**")
+    if "!!" in s:
+        parts = s.split("!!")
         if len(parts) >= 2 and len(parts) % 2 == 1:
             fragments = []
             for i, p in enumerate(parts):
