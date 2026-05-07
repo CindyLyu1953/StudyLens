@@ -1,6 +1,12 @@
 # StudyLens — User Guide
 
-StudyLens helps you work with **social media effects** research: explore studies in the database, compare them side by side, and contribute new papers for review. Step-by-step guidance for extracting structured fields from your own PDFs will be added here once that workflow is published in this repository.
+**StudyLens** is a **searchable, filterable** resource for **social media reduction and deactivation** research. Researchers can **find studies**, open detailed article views, **compare up to five papers side by side**, and get an **AI-generated summary of key differences** across design, measurement, findings, and context—often in seconds rather than after reading many appendices.
+
+**What powers the data:** a multi-stage extraction pipeline. A first pass uses **Gemini** to pull about **47 structured fields** from each paper’s PDF (including appendices)—from sample size and recruitment to survey wording, model specifications, and more. A **second pass** adds **contextual variables** the original studies did not always report: country-linked measures from **V-Dem**, the **World Bank**, **Freedom House**, and **DataReportal**—for example democracy and governance scores, press and internet freedom indices, and internet or platform usage where available—with a separate AI step that produces a **context summary** per study. A **third pass standardizes** fields so comparisons across studies stay aligned.
+
+**On the web**, this repository’s **Flask** app serves the dataset through **keyword search**, **faceted filters**, article pages, and the **comparison** view. When you compare studies, the app can call the **Groq** API to generate **plain-language text** on how the selected papers **agree and differ**—including on contextual indicators authors may never have included in the original paper. You can also **request new papers** for the shared catalog through **Profile → Upload Papers**.
+
+Step-by-step guidance for **extracting structured fields from your own PDFs** (notebooks and notes for the Gemini workflow) lives in the [`Feature_Extraction/`](Feature_Extraction/) folder in this repository; we will expand this README with a fuller end-to-end tutorial as that workflow is finalized.
 
 ---
 
@@ -15,8 +21,7 @@ The web app lets you **search**, **open article details**, and **compare** studi
 
 ### Open the site
 
-- **Local copy:** if you run the app yourself, it is typically at `http://localhost:5001` (see below).
-- **Hosted instance:** use the URL provided by your team or institution.
+- **Public site:** [https://studylens.pythonanywhere.com](https://studylens.pythonanywhere.com)
 
 ### Search and filters
 
